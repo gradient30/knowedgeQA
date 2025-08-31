@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邮箱验证 - QA测试知识协作平台</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: white;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%); padding: 40px 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">
+                QA测试知识协作平台
+            </h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px;">
+                专为测试团队打造的知识分享与协作平台
+            </p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 30px;">
+            <h2 style="color: #1890ff; margin: 0 0 20px 0; font-size: 24px;">
+                欢迎加入我们！
+            </h2>
+            
+            <p style="color: #333; line-height: 1.6; margin: 0 0 20px 0;">
+                亲爱的 <strong>{{ username }}</strong>，
+            </p>
+            
+            <p style="color: #333; line-height: 1.6; margin: 0 0 30px 0;">
+                感谢您注册QA测试知识协作平台！为了确保账户安全，请点击下面的按钮验证您的邮箱地址：
+            </p>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 40px 0;">
+                <a href="{{ verification_url }}" 
+                   style="background-color: #1890ff; color: white; padding: 16px 32px; 
+                          text-decoration: none; border-radius: 6px; display: inline-block;
+                          font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(24,144,255,0.3);">
+                    验证邮箱地址
+                </a>
+            </div>
+            
+            <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
+                如果按钮无法点击，请复制以下链接到浏览器地址栏：
+            </p>
+            
+            <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; 
+                        padding: 15px; margin: 15px 0; word-break: break-all;">
+                <code style="color: #495057; font-size: 13px;">{{ verification_url }}</code>
+            </div>
+            
+            <!-- Features -->
+            <div style="background: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; 
+                        padding: 20px; margin: 30px 0;">
+                <h3 style="color: #389e0d; margin: 0 0 15px 0; font-size: 16px;">
+                    验证后您可以：
+                </h3>
+                <ul style="color: #52c41a; margin: 0; padding-left: 20px; line-height: 1.8;">
+                    <li>分享测试经验和最佳实践</li>
+                    <li>浏览和收藏优质测试工具</li>
+                    <li>获取行业前沿技术资讯</li>
+                    <li>与团队成员协作交流</li>
+                </ul>
+            </div>
+            
+            <div style="border-top: 1px solid #e9ecef; padding-top: 20px; margin-top: 40px;">
+                <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 0;">
+                    <strong>重要提醒：</strong><br>
+                    • 此验证链接将在 <strong>24小时</strong> 后失效<br>
+                    • 如果您没有注册账户，请忽略此邮件<br>
+                    • 如有疑问，请联系我们的技术支持
+                </p>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background: #fafafa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
+            <p style="color: #999; font-size: 12px; margin: 0 0 10px 0;">
+                此邮件由QA测试知识协作平台自动发送，请勿回复
+            </p>
+            <p style="color: #ccc; font-size: 11px; margin: 0;">
+                © 2025 QA测试知识协作平台. 保留所有权利.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

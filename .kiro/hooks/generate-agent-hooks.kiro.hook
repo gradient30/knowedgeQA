@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "name": "Generate Agent Hooks",
+  "description": "Automatically generates Agent Hooks based on current project implementation status, focusing on QA testing platform development with Next.js frontend and FastAPI backend",
+  "version": "1",
+  "when": {
+    "type": "userTriggered",
+    "patterns": [
+      "frontend/app/**/*.tsx",
+      "frontend/components/**/*.tsx",
+      "backend/app/**/*.py",
+      "*.md",
+      "package.json",
+      "pyproject.toml"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "作为AI专家和项目研发专家，基于当前QA测试知识协作平台的实际实施情况，分析文件变更并生成精准实用的Agent Hooks。重点关注：1) Next.js 14 + TypeScript前端开发规范 2) FastAPI + SQLAlchemy后端开发规范 3) QA测试领域特定组件和功能 4) 代码质量检查和测试覆盖率 5) 中文环境优化和测试专业化需求。请提供具体的Hook配置建议，包括触发条件、检查项目和改进建议。"
+  }
+}

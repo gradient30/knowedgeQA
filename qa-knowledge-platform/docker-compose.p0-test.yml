@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # 前端服务 - P0测试专用
+  frontend-p0:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.p0-test
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    networks:
+      - p0-test-network
+
+  # 后端服务 - 简化版本
+  backend-p0:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - ENV=development
+      - DATABASE_URL=postgresql+asyncpg://qa_user:qa_password@db-p0:5432/qa_platform_dev
+      - REDIS_URL=redis://redis-p0:6379/0
+    depends_on:
+      - db-p0
+      - redis-p0
+    networks:
+      - p0-test-network
+
+  # PostgreSQL数据库 - 简化版本
+  db-p0:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: qa_platform_dev
+      POSTGRES_USER: qa_user
+      POSTGRES_PASSWORD: qa_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - p0_db_data:/var/lib/postgresql/data
+    networks:
+      - p0-test-network
+
+  # Redis缓存 - 简化版本
+  redis-p0:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - p0_redis_data:/data
+    networks:
+      - p0-test-network
+
+  # Celery Worker - 异步任务处理
+  celery-worker-p0:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    environment:
+      - ENV=development
+      - DATABASE_URL=postgresql+asyncpg://qa_user:qa_password@db-p0:5432/qa_platform_dev
+      - REDIS_URL=redis://redis-p0:6379/0
+      - CELERY_BROKER_URL=redis://redis-p0:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis-p0:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db-p0
+      - redis-p0
+    networks:
+      - p0-test-network
+    command: celery -A app.core.celery_app worker --loglevel=info
+
+  # Celery Beat - 定时任务调度
+  celery-beat-p0:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    environment:
+      - ENV=development
+      - DATABASE_URL=postgresql+asyncpg://qa_user:qa_password@db-p0:5432/qa_platform_dev
+      - REDIS_URL=redis://redis-p0:6379/0
+      - CELERY_BROKER_URL=redis://redis-p0:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis-p0:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db-p0
+      - redis-p0
+    networks:
+      - p0-test-network
+    command: celery -A app.core.celery_app beat --loglevel=info
+
+volumes:
+  p0_db_data:
+  p0_redis_data:
+
+networks:
+  p0-test-network:
+    driver: bridge

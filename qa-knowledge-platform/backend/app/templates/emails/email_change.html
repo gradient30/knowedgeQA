@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邮箱修改验证 - QA测试知识协作平台</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 0;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #fa8c16 0%, #ff7a45 100%); padding: 30px 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">
+                QA测试知识协作平台
+            </h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px;">
+                专为测试团队打造的知识分享与协作平台
+            </p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 30px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <div style="width: 80px; height: 80px; background-color: #fff2e8; border-radius: 50%; 
+                           display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" 
+                              stroke="#fa8c16" stroke-width="2" fill="none"/>
+                        <polyline points="22,6 12,13 2,6" stroke="#fa8c16" stroke-width="2" fill="none"/>
+                    </svg>
+                </div>
+                <h2 style="color: #fa8c16; margin: 0; font-size: 24px; font-weight: bold;">
+                    邮箱修改验证
+                </h2>
+            </div>
+            
+            <p style="color: #333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                亲爱的 <strong>{{ username }}</strong>，
+            </p>
+            
+            <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                我们收到了您的邮箱修改请求。为了确保账户安全，请点击下面的按钮验证您的新邮箱地址：
+            </p>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 40px 0;">
+                <a href="{{ verification_url }}" 
+                   style="background: linear-gradient(135deg, #fa8c16 0%, #ff7a45 100%); 
+                          color: white; padding: 16px 32px; text-decoration: none; 
+                          border-radius: 8px; display: inline-block; font-weight: bold; 
+                          font-size: 16px; box-shadow: 0 4px 12px rgba(250, 140, 22, 0.3);
+                          transition: all 0.3s ease;">
+                    验证新邮箱
+                </a>
+            </div>
+            
+            <!-- Alternative Link -->
+            <div style="background-color: #fafafa; border: 1px solid #e8e8e8; border-radius: 8px; padding: 20px; margin: 30px 0;">
+                <p style="color: #666; font-size: 14px; margin: 0 0 10px 0;">
+                    如果按钮无法点击，请复制以下链接到浏览器地址栏：
+                </p>
+                <p style="word-break: break-all; color: #fa8c16; font-size: 14px; margin: 0; 
+                          background-color: white; padding: 12px; border-radius: 4px; border: 1px solid #e8e8e8;">
+                    {{ verification_url }}
+                </p>
+            </div>
+            
+            <!-- Security Notice -->
+            <div style="background-color: #fff7e6; border: 1px solid #ffd591; border-radius: 8px; padding: 20px; margin: 30px 0;">
+                <div style="display: flex; align-items: flex-start;">
+                    <div style="margin-right: 12px; margin-top: 2px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" 
+                                  stroke="#fa8c16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p style="color: #d46b08; font-weight: bold; margin: 0 0 8px 0; font-size: 14px;">
+                            安全提醒
+                        </p>
+                        <p style="color: #ad6800; font-size: 14px; line-height: 1.5; margin: 0;">
+                            如果您没有请求修改邮箱，请立即联系管理员。此链接将在 <strong>1小时</strong> 后失效。
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Process Info -->
+            <div style="border-top: 1px solid #e8e8e8; padding-top: 20px; margin-top: 30px;">
+                <p style="color: #999; font-size: 13px; line-height: 1.5; margin: 0;">
+                    验证成功后，您的邮箱地址将被更新，并且您需要使用新邮箱地址登录。
+                    如有任何问题，请联系我们的技术支持团队。
+                </p>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #fafafa; padding: 20px 30px; text-align: center; border-top: 1px solid #e8e8e8;">
+            <p style="color: #999; font-size: 12px; margin: 0; line-height: 1.5;">
+                此邮件由 QA测试知识协作平台 自动发送，请勿回复。<br>
+                如需帮助，请访问我们的帮助中心或联系技术支持。
+            </p>
+        </div>
+    </div>
+</body>
+</html>
