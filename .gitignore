@@ -4,6 +4,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# PNPM
+.pnpm-store/
+.pnpm-debug.log*
+
 
 # Distribution / packaging
 .Python
