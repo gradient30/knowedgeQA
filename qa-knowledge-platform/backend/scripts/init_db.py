@@ -17,12 +17,183 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import engine, AsyncSessionLocal, Base
 from app.core.config import settings
 from app.modules.users.models import User, Team, UserRole
-from app.modules.knowledge.models import Category, CategoryType, Tag, TagCategory
-from app.modules.tools.models import ToolCategory, ToolCategoryType
-from app.modules.news.models import NewsSource, NewsCategory
+from app.modules.knowledge.models import (
+    BusinessDomain as KnowledgeBusinessDomain,
+    Category,
+    CategoryType,
+    Tag,
+    TagCategory,
+)
+from app.modules.tools.models import (
+    BusinessDomain as ToolBusinessDomain,
+    ToolCategory,
+    ToolCategoryType,
+)
+from app.modules.news.models import (
+    BusinessDomain as NewsBusinessDomain,
+    NewsCategory,
+    NewsSource,
+)
 import uuid
 from datetime import datetime
 import bcrypt
+
+
+def get_initial_categories_data():
+    return [
+        {
+            "name": "功能测试",
+            "description": "验证软件功能是否符合需求规格说明书的测试",
+            "type": CategoryType.FUNCTIONAL,
+            "business_domain": KnowledgeBusinessDomain.COMMON,
+        },
+        {
+            "name": "性能测试",
+            "description": "验证系统在特定负载下的性能表现",
+            "type": CategoryType.PERFORMANCE,
+            "business_domain": KnowledgeBusinessDomain.COMMON,
+        },
+        {
+            "name": "自动化测试",
+            "description": "使用自动化工具和脚本进行的测试",
+            "type": CategoryType.AUTOMATION,
+            "business_domain": KnowledgeBusinessDomain.COMMON,
+        },
+        {
+            "name": "API兼容性测试",
+            "description": "SaaS接口版本、调用方和破坏性变更验证",
+            "type": CategoryType.SAAS_API,
+            "business_domain": KnowledgeBusinessDomain.SAAS,
+        },
+        {
+            "name": "SaaS灰度发布复盘",
+            "description": "灰度批次、监控指标、异常决策和回滚复盘",
+            "type": CategoryType.SAAS_RELEASE,
+            "business_domain": KnowledgeBusinessDomain.SAAS,
+        },
+        {
+            "name": "游戏版本质量报告",
+            "description": "游戏版本提审、阻塞缺陷、性能和质量结论",
+            "type": CategoryType.GAME,
+            "business_domain": KnowledgeBusinessDomain.GAME,
+        },
+        {
+            "name": "机型兼容测试",
+            "description": "游戏多端设备、系统、画质档位和崩溃验证",
+            "type": CategoryType.GAME_COMPATIBILITY,
+            "business_domain": KnowledgeBusinessDomain.GAME,
+        },
+        {
+            "name": "游戏性能测试",
+            "description": "帧率、内存、弱网、发热和压测结果沉淀",
+            "type": CategoryType.GAME_PERFORMANCE,
+            "business_domain": KnowledgeBusinessDomain.GAME,
+        },
+        {
+            "name": "安全测试",
+            "description": "验证系统安全性和数据保护的测试",
+            "type": CategoryType.SECURITY,
+            "business_domain": KnowledgeBusinessDomain.COMMON,
+        },
+        {
+            "name": "移动测试",
+            "description": "移动应用和移动端网页的测试",
+            "type": CategoryType.MOBILE,
+            "business_domain": KnowledgeBusinessDomain.COMMON,
+        },
+    ]
+
+
+def get_initial_tool_categories_data():
+    return [
+        {
+            "name": "功能测试工具",
+            "description": "用于功能测试的各种工具和平台",
+            "type": ToolCategoryType.FUNCTIONAL,
+            "business_domain": ToolBusinessDomain.COMMON,
+        },
+        {
+            "name": "SaaS接口测试工具",
+            "description": "SaaS API兼容性、契约测试和回归验证工具",
+            "type": ToolCategoryType.API,
+            "business_domain": ToolBusinessDomain.SAAS,
+        },
+        {
+            "name": "性能测试工具",
+            "description": "负载测试、压力测试、性能监控工具",
+            "type": ToolCategoryType.PERFORMANCE,
+            "business_domain": ToolBusinessDomain.COMMON,
+        },
+        {
+            "name": "自动化测试工具",
+            "description": "UI自动化、API自动化、测试框架",
+            "type": ToolCategoryType.AUTOMATION,
+            "business_domain": ToolBusinessDomain.COMMON,
+        },
+        {
+            "name": "移动测试工具",
+            "description": "移动应用测试、设备管理工具",
+            "type": ToolCategoryType.MOBILE,
+            "business_domain": ToolBusinessDomain.COMMON,
+        },
+        {
+            "name": "游戏性能测试工具",
+            "description": "游戏帧率、弱网、压测、兼容性和稳定性工具",
+            "type": ToolCategoryType.GAME,
+            "business_domain": ToolBusinessDomain.GAME,
+        },
+        {
+            "name": "测试管理工具",
+            "description": "测试用例管理、缺陷管理、项目管理",
+            "type": ToolCategoryType.MANAGEMENT,
+            "business_domain": ToolBusinessDomain.COMMON,
+        },
+    ]
+
+
+def get_initial_news_sources_data():
+    return [
+        {
+            "name": "软件测试网",
+            "url": "https://www.51testing.com",
+            "category": NewsCategory.SOFTWARE_TESTING,
+            "business_domain": NewsBusinessDomain.COMMON,
+            "keywords": ["软件测试", "质量保证", "测试方法", "测试工具"],
+            "frequency_hours": 24,
+        },
+        {
+            "name": "TesterHome",
+            "url": "https://testerhome.com",
+            "category": NewsCategory.SOFTWARE_TESTING,
+            "business_domain": NewsBusinessDomain.COMMON,
+            "keywords": ["自动化测试", "移动测试", "性能测试"],
+            "frequency_hours": 12,
+        },
+        {
+            "name": "腾讯云游戏行业资讯",
+            "url": "https://www.tencentcloud.com/solutions/gaming",
+            "category": NewsCategory.GAME_TESTING,
+            "business_domain": NewsBusinessDomain.GAME,
+            "keywords": ["游戏质量", "游戏开发", "游戏云", "性能"],
+            "frequency_hours": 24,
+        },
+        {
+            "name": "网易游戏研发资讯",
+            "url": "https://www.neteasegames.com/news/",
+            "category": NewsCategory.GAME_TESTING,
+            "business_domain": NewsBusinessDomain.GAME,
+            "keywords": ["网易游戏", "游戏研发", "AI测试", "自动化测试"],
+            "frequency_hours": 24,
+        },
+        {
+            "name": "SaaS质量工程资讯",
+            "url": "https://dora.dev/research/",
+            "category": NewsCategory.SAAS_QUALITY,
+            "business_domain": NewsBusinessDomain.SAAS,
+            "keywords": ["SaaS", "DevOps", "质量工程", "交付效能"],
+            "frequency_hours": 48,
+        },
+    ]
 
 
 async def create_tables():
@@ -84,38 +255,7 @@ async def create_initial_data():
             default_team.leader_id = admin_user.id
             
             # 创建测试分类
-            categories_data = [
-                {
-                    "name": "功能测试",
-                    "description": "验证软件功能是否符合需求规格说明书的测试",
-                    "type": CategoryType.FUNCTIONAL
-                },
-                {
-                    "name": "性能测试",
-                    "description": "验证系统在特定负载下的性能表现",
-                    "type": CategoryType.PERFORMANCE
-                },
-                {
-                    "name": "自动化测试",
-                    "description": "使用自动化工具和脚本进行的测试",
-                    "type": CategoryType.AUTOMATION
-                },
-                {
-                    "name": "游戏测试",
-                    "description": "专门针对游戏产品的测试方法和技巧",
-                    "type": CategoryType.GAME
-                },
-                {
-                    "name": "安全测试",
-                    "description": "验证系统安全性和数据保护的测试",
-                    "type": CategoryType.SECURITY
-                },
-                {
-                    "name": "移动测试",
-                    "description": "移动应用和移动端网页的测试",
-                    "type": CategoryType.MOBILE
-                }
-            ]
+            categories_data = get_initial_categories_data()
             
             for i, cat_data in enumerate(categories_data):
                 category = Category(
@@ -123,6 +263,7 @@ async def create_initial_data():
                     name=cat_data["name"],
                     description=cat_data["description"],
                     type=cat_data["type"],
+                    business_domain=cat_data["business_domain"],
                     sort_order=i + 1
                 )
                 session.add(category)
@@ -170,38 +311,7 @@ async def create_initial_data():
                 session.add(tag)
             
             # 创建工具分类
-            tool_categories_data = [
-                {
-                    "name": "功能测试工具",
-                    "description": "用于功能测试的各种工具和平台",
-                    "type": ToolCategoryType.FUNCTIONAL
-                },
-                {
-                    "name": "性能测试工具",
-                    "description": "负载测试、压力测试、性能监控工具",
-                    "type": ToolCategoryType.PERFORMANCE
-                },
-                {
-                    "name": "自动化测试工具",
-                    "description": "UI自动化、API自动化、测试框架",
-                    "type": ToolCategoryType.AUTOMATION
-                },
-                {
-                    "name": "移动测试工具",
-                    "description": "移动应用测试、设备管理工具",
-                    "type": ToolCategoryType.MOBILE
-                },
-                {
-                    "name": "游戏测试工具",
-                    "description": "游戏专用测试工具和平台",
-                    "type": ToolCategoryType.GAME
-                },
-                {
-                    "name": "测试管理工具",
-                    "description": "测试用例管理、缺陷管理、项目管理",
-                    "type": ToolCategoryType.MANAGEMENT
-                }
-            ]
+            tool_categories_data = get_initial_tool_categories_data()
             
             for i, tool_cat_data in enumerate(tool_categories_data):
                 tool_category = ToolCategory(
@@ -209,34 +319,13 @@ async def create_initial_data():
                     name=tool_cat_data["name"],
                     description=tool_cat_data["description"],
                     type=tool_cat_data["type"],
+                    business_domain=tool_cat_data["business_domain"],
                     sort_order=i + 1
                 )
                 session.add(tool_category)
             
             # 创建默认资讯源
-            news_sources_data = [
-                {
-                    "name": "软件测试网",
-                    "url": "https://www.51testing.com",
-                    "category": NewsCategory.SOFTWARE_TESTING,
-                    "keywords": ["软件测试", "质量保证", "测试方法", "测试工具"],
-                    "frequency_hours": 24
-                },
-                {
-                    "name": "TesterHome",
-                    "url": "https://testerhome.com",
-                    "category": NewsCategory.SOFTWARE_TESTING,
-                    "keywords": ["自动化测试", "移动测试", "性能测试"],
-                    "frequency_hours": 12
-                },
-                {
-                    "name": "游戏测试资讯",
-                    "url": "https://www.gamelook.com.cn",
-                    "category": NewsCategory.GAME_TESTING,
-                    "keywords": ["游戏测试", "游戏质量", "游戏开发"],
-                    "frequency_hours": 24
-                }
-            ]
+            news_sources_data = get_initial_news_sources_data()
             
             for news_data in news_sources_data:
                 news_source = NewsSource(
@@ -244,6 +333,7 @@ async def create_initial_data():
                     name=news_data["name"],
                     url=news_data["url"],
                     category=news_data["category"],
+                    business_domain=news_data["business_domain"],
                     keywords=news_data["keywords"],
                     frequency_hours=news_data["frequency_hours"],
                     is_active=True
