@@ -64,6 +64,7 @@ async def qa_knowledge_exception_handler(request: Request, exc: QAKnowledgeExcep
         content={
             "error": True,
             "message": exc.message,
+            "detail": exc.message,
             "details": exc.details,
             "path": request.url.path,
             "timestamp": str(request.state.timestamp) if hasattr(request.state, 'timestamp') else None
@@ -84,6 +85,7 @@ async def http_exception_handler(request: Request, exc: Union[HTTPException, Sta
         content={
             "error": True,
             "message": exc.detail,
+            "detail": exc.detail,
             "path": request.url.path,
             "timestamp": str(request.state.timestamp) if hasattr(request.state, 'timestamp') else None
         }
@@ -103,6 +105,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             "error": True,
             "message": "请求数据验证失败",
+            "detail": "请求数据验证失败",
             "details": exc.errors(),
             "path": request.url.path,
             "timestamp": str(request.state.timestamp) if hasattr(request.state, 'timestamp') else None
@@ -123,6 +126,7 @@ async def general_exception_handler(request: Request, exc: Exception):
         content={
             "error": True,
             "message": "服务器内部错误",
+            "detail": "服务器内部错误",
             "path": request.url.path,
             "timestamp": str(request.state.timestamp) if hasattr(request.state, 'timestamp') else None
         }

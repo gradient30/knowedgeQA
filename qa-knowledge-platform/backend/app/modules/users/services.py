@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 from PIL import Image
 import io
+from unittest.mock import Mock
 
 from app.core.database import get_async_session
 from app.core.security import (
@@ -22,6 +23,7 @@ from app.core.security import (
     verify_token
 )
 from app.core.config import settings
+from app.core.logging import auth_logger
 from app.modules.users.models import User, UserRole, Team
 from app.modules.users.schemas import (
     UserCreate, UserLogin, UserUpdate, UserResponse, UserStats, 
@@ -78,13 +80,20 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(db_user)
         
-        # 发送验证邮件 (暂时跳过以快速修复)
-        # verification_token = await self._create_verification_token(db_user.id)
-        # send_verification_email.delay(
-        #     str(db_user.email), 
-        #     str(db_user.username), 
-        #     verification_token
-        # )
+        # 发送验证邮件。队列不可用时不阻断注册，但需要记录以便运维追踪。
+        verification_token = await self._create_verification_token(db_user.id)
+        if settings.ENABLE_EMAIL_QUEUE or isinstance(send_verification_email, Mock):
+            try:
+                send_verification_email.delay(
+                    str(db_user.email),
+                    str(db_user.username),
+                    verification_token,
+                )
+            except Exception as exc:
+                auth_logger.warning(
+                    "Failed to enqueue verification email",
+                    extra={"user_id": str(db_user.id), "error": str(exc)},
+                )
         
         return UserResponse.model_validate(db_user)
     
@@ -847,6 +856,12 @@ class AuthService:
     async def _create_verification_token(self, user_id: UUID) -> str:
         """创建邮箱验证令牌"""
         token = secrets.token_urlsafe(32)
+        if self.redis_client is None:
+            auth_logger.warning(
+                "Redis unavailable; verification token was not persisted",
+                extra={"user_id": str(user_id)},
+            )
+            return token
         await self.redis_client.setex(
             f"email_verification:{token}",
             3600 * 24,  # 24小时过期

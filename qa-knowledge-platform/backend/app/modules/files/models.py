@@ -1,5 +1,5 @@
-from sqlalchemy import Column, String, Text, Integer, DateTime, Enum, ForeignKey, Boolean
-from sqlalchemy.dialects.postgresql import UUID, JSON
+from sqlalchemy import Column, String, Text, Integer, DateTime, Enum, ForeignKey, Boolean, Uuid
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -25,8 +25,8 @@ class FileStatus(str, enum.Enum):
 class UploadedFile(Base):
     __tablename__ = "uploaded_files"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False)
     original_name = Column(String(255), nullable=False)
     file_name = Column(String(255), nullable=False)  # 存储的文件名
     file_path = Column(Text, nullable=False)  # 文件存储路径

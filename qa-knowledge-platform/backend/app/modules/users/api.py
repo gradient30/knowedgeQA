@@ -22,6 +22,7 @@ from app.modules.users.services import (
 from app.modules.users.models import User, UserRole
 
 router = APIRouter()
+teams_router = APIRouter()
 
 
 # 认证相关路由
@@ -129,6 +130,7 @@ async def update_user_profile(
     return await auth_service.update_user_profile(current_user.id, update_data)
 
 
+@router.get("/stats", response_model=UserStats)
 @router.get("/profile/stats", response_model=UserStats)
 async def get_user_stats(
     current_user: User = Depends(get_current_active_user),
@@ -138,6 +140,7 @@ async def get_user_stats(
     return await auth_service.get_user_stats(current_user.id)
 
 
+@router.post("/change-password", status_code=status.HTTP_200_OK)
 @router.post("/profile/change-password", status_code=status.HTTP_200_OK)
 async def change_password(
     password_data: PasswordChange,
@@ -155,7 +158,7 @@ async def change_password(
         password_data.current_password, 
         password_data.new_password
     )
-    return {"message": "密码修改成功"}
+    return {"message": "密码修改成功", "success": True}
 
 
 @router.post("/profile/request-email-change", status_code=status.HTTP_200_OK)
@@ -207,6 +210,7 @@ async def upload_avatar(
     return AvatarUpload(avatar_url=avatar_url)
 
 
+@router.post("/export-data")
 @router.post("/profile/export-data")
 async def export_user_data(
     export_request: UserDataExport,
@@ -328,6 +332,152 @@ async def get_export_stats(
         }
     }
 
+# 团队管理相关路由
+@teams_router.post("/teams", response_model=TeamResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/teams", response_model=TeamResponse, status_code=status.HTTP_201_CREATED)
+async def create_team(
+    team_data: TeamCreate,
+    current_user: User = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    创建团队
+    
+    - **name**: 团队名称
+    - **description**: 团队描述（可选）
+    - **leader_id**: 团队负责人ID（可选，默认为创建者）
+    - **settings**: 团队设置（可选）
+    """
+    return await auth_service.create_team(team_data, current_user.id)
+
+
+@teams_router.get("/teams/{team_id}", response_model=TeamResponse)
+@router.get("/teams/{team_id}", response_model=TeamResponse)
+async def get_team(
+    team_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """获取团队信息"""
+    team = await auth_service.get_team_by_id(team_id)
+    
+    # 检查访问权限：只有团队成员或管理员可以查看
+    if (current_user.team_id != team_id and 
+        current_user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="权限不足"
+        )
+    
+    return team
+
+
+@teams_router.put("/teams/{team_id}", response_model=TeamResponse)
+@router.put("/teams/{team_id}", response_model=TeamResponse)
+async def update_team(
+    team_id: UUID,
+    update_data: TeamUpdate,
+    current_user: User = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    更新团队信息
+    
+    只有团队负责人或管理员可以更新团队信息
+    """
+    return await auth_service.update_team(team_id, update_data, current_user.id)
+
+
+@teams_router.post("/teams/{team_id}/invite", status_code=status.HTTP_200_OK)
+@router.post("/teams/{team_id}/invite", status_code=status.HTTP_200_OK)
+async def invite_team_member(
+    team_id: UUID,
+    invitation: TeamInvitation,
+    current_user: User = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    邀请团队成员
+    
+    - **email**: 被邀请用户的邮箱
+    - **role**: 用户角色
+    - **message**: 邀请消息（可选）
+    """
+    await auth_service.invite_team_member(team_id, invitation, current_user.id)
+    return {"message": "邀请发送成功"}
+
+
+@teams_router.delete("/teams/{team_id}/members/{member_id}", status_code=status.HTTP_200_OK)
+@router.delete("/teams/{team_id}/members/{member_id}", status_code=status.HTTP_200_OK)
+async def remove_team_member(
+    team_id: UUID,
+    member_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """移除团队成员"""
+    await auth_service.remove_team_member(team_id, member_id, current_user.id)
+    return {"message": "成员移除成功"}
+
+
+@teams_router.put("/teams/{team_id}/members/{member_id}/role", status_code=status.HTTP_200_OK)
+@router.put("/teams/{team_id}/members/{member_id}/role", status_code=status.HTTP_200_OK)
+async def update_team_member_role(
+    team_id: UUID,
+    member_id: UUID,
+    role_update: TeamMemberUpdate,
+    current_user: User = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """更新团队成员角色"""
+    await auth_service.update_team_member_role(team_id, member_id, role_update, current_user.id)
+    return {"message": "角色更新成功"}
+
+
+@teams_router.get("/teams/{team_id}/stats", response_model=TeamStats)
+@router.get("/teams/{team_id}/stats", response_model=TeamStats)
+async def get_team_stats(
+    team_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """获取团队统计信息"""
+    # 检查访问权限
+    if (current_user.team_id != team_id and 
+        current_user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="权限不足"
+        )
+    
+    return await auth_service.get_team_stats(team_id)
+
+
+@teams_router.post("/teams/leave", status_code=status.HTTP_200_OK)
+@router.post("/teams/leave", status_code=status.HTTP_200_OK)
+async def leave_team(
+    current_user: User = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """离开当前团队"""
+    await auth_service.leave_team(current_user.id)
+    return {"message": "已成功离开团队"}
+
+
+@router.get("/profile/team", response_model=TeamResponse)
+async def get_current_user_team(
+    current_user: User = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """获取当前用户的团队信息"""
+    if not current_user.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户未加入任何团队"
+        )
+    
+    return await auth_service.get_team_by_id(current_user.team_id)
+
 
 # 管理员功能
 @router.get("/", response_model=List[UserResponse])
@@ -380,142 +530,3 @@ async def update_user_status(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail="功能开发中"
     )
-
-
-# 团队管理相关路由
-@router.post("/teams", response_model=TeamResponse, status_code=status.HTTP_201_CREATED)
-async def create_team(
-    team_data: TeamCreate,
-    current_user: User = Depends(get_current_active_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """
-    创建团队
-    
-    - **name**: 团队名称
-    - **description**: 团队描述（可选）
-    - **leader_id**: 团队负责人ID（可选，默认为创建者）
-    - **settings**: 团队设置（可选）
-    """
-    return await auth_service.create_team(team_data, current_user.id)
-
-
-@router.get("/teams/{team_id}", response_model=TeamResponse)
-async def get_team(
-    team_id: UUID,
-    current_user: User = Depends(get_current_active_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """获取团队信息"""
-    team = await auth_service.get_team_by_id(team_id)
-    
-    # 检查访问权限：只有团队成员或管理员可以查看
-    if (current_user.team_id != team_id and 
-        current_user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN]):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="权限不足"
-        )
-    
-    return team
-
-
-@router.put("/teams/{team_id}", response_model=TeamResponse)
-async def update_team(
-    team_id: UUID,
-    update_data: TeamUpdate,
-    current_user: User = Depends(get_current_active_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """
-    更新团队信息
-    
-    只有团队负责人或管理员可以更新团队信息
-    """
-    return await auth_service.update_team(team_id, update_data, current_user.id)
-
-
-@router.post("/teams/{team_id}/invite", status_code=status.HTTP_200_OK)
-async def invite_team_member(
-    team_id: UUID,
-    invitation: TeamInvitation,
-    current_user: User = Depends(get_current_active_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """
-    邀请团队成员
-    
-    - **email**: 被邀请用户的邮箱
-    - **role**: 用户角色
-    - **message**: 邀请消息（可选）
-    """
-    await auth_service.invite_team_member(team_id, invitation, current_user.id)
-    return {"message": "邀请发送成功"}
-
-
-@router.delete("/teams/{team_id}/members/{member_id}", status_code=status.HTTP_200_OK)
-async def remove_team_member(
-    team_id: UUID,
-    member_id: UUID,
-    current_user: User = Depends(get_current_active_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """移除团队成员"""
-    await auth_service.remove_team_member(team_id, member_id, current_user.id)
-    return {"message": "成员移除成功"}
-
-
-@router.put("/teams/{team_id}/members/{member_id}/role", status_code=status.HTTP_200_OK)
-async def update_team_member_role(
-    team_id: UUID,
-    member_id: UUID,
-    role_update: TeamMemberUpdate,
-    current_user: User = Depends(get_current_active_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """更新团队成员角色"""
-    await auth_service.update_team_member_role(team_id, member_id, role_update, current_user.id)
-    return {"message": "角色更新成功"}
-
-
-@router.get("/teams/{team_id}/stats", response_model=TeamStats)
-async def get_team_stats(
-    team_id: UUID,
-    current_user: User = Depends(get_current_active_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """获取团队统计信息"""
-    # 检查访问权限
-    if (current_user.team_id != team_id and 
-        current_user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN]):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="权限不足"
-        )
-    
-    return await auth_service.get_team_stats(team_id)
-
-
-@router.post("/teams/leave", status_code=status.HTTP_200_OK)
-async def leave_team(
-    current_user: User = Depends(get_current_active_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """离开当前团队"""
-    await auth_service.leave_team(current_user.id)
-    return {"message": "已成功离开团队"}
-
-
-@router.get("/profile/team", response_model=TeamResponse)
-async def get_current_user_team(
-    current_user: User = Depends(get_current_active_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """获取当前用户的团队信息"""
-    if not current_user.team_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="用户未加入任何团队"
-        )
-    
-    return await auth_service.get_team_by_id(current_user.team_id)
