@@ -13,6 +13,7 @@ from app.modules.files.models import FileType
 # from app.modules.auth.dependencies import get_current_user
 
 router = APIRouter()
+TEMP_USER_ID = "00000000-0000-0000-0000-000000000001"
 
 
 @router.post("/upload", response_model=FileUploadResponse)
@@ -34,7 +35,7 @@ async def upload_file(
         file_service = FileService(db)
         
         # TODO: Replace with actual user ID from auth
-        user_id = "temp-user-id"  # current_user.id
+        user_id = TEMP_USER_ID  # current_user.id
         
         # 保存文件
         file_info = await file_service.save_file(file, user_id, is_public)
@@ -63,7 +64,7 @@ async def upload_multiple_files(
     """
     file_service = FileService(db)
     # TODO: Replace with actual user ID from auth
-    user_id = "temp-user-id"  # current_user.id
+    user_id = TEMP_USER_ID  # current_user.id
     
     results = []
     for file in files:
@@ -126,7 +127,7 @@ async def delete_file(
     """
     file_service = FileService(db)
     # TODO: Replace with actual user ID from auth
-    user_id = "temp-user-id"  # current_user.id
+    user_id = TEMP_USER_ID  # current_user.id
     
     await file_service.delete_file(file_id, user_id)
     return {"message": "文件删除成功"}
@@ -146,7 +147,7 @@ async def list_user_files(
     """
     file_service = FileService(db)
     # TODO: Replace with actual user ID from auth
-    user_id = "temp-user-id"  # current_user.id
+    user_id = TEMP_USER_ID  # current_user.id
     
     result = await file_service.get_user_files(user_id, file_type, page, size)
     return result

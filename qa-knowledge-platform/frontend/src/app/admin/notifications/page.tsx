@@ -1,1 +1,531 @@
-'use client';\n\nimport React, { useState, useEffect } from 'react';\nimport {\n  Card,\n  Tabs,\n  Form,\n  Switch,\n  Button,\n  Input,\n  Table,\n  Tag,\n  Space,\n  Modal,\n  message,\n  Alert,\n  Descriptions,\n  Select,\n  Divider\n} from 'antd';\nimport {\n  MailOutlined,\n  SettingOutlined,\n  SendOutlined,\n  EyeOutlined,\n  CheckCircleOutlined,\n  CloseCircleOutlined,\n  ExclamationCircleOutlined\n} from '@ant-design/icons';\n\nconst { TextArea } = Input;\nconst { Option } = Select;\n\ninterface EmailSettings {\n  smtp_configured: boolean;\n  smtp_host: string;\n  smtp_port: number;\n  smtp_user: string;\n  smtp_tls: boolean;\n  notifications: {\n    email_verification: boolean;\n    password_reset: boolean;\n    welcome_email: boolean;\n    article_comments: boolean;\n    team_invitations: boolean;\n    system_updates: boolean;\n  };\n}\n\ninterface EmailLog {\n  id: string;\n  to_email: string;\n  subject: string;\n  template_name: string;\n  status: 'success' | 'failed' | 'pending';\n  sent_at: string;\n  error_message?: string;\n}\n\ninterface EmailTemplate {\n  id: string;\n  name: string;\n  description: string;\n  variables: string[];\n}\n\nconst NotificationsPage: React.FC = () => {\n  const [emailSettings, setEmailSettings] = useState<EmailSettings | null>(null);\n  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);\n  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);\n  const [loading, setLoading] = useState(false);\n  const [testEmailVisible, setTestEmailVisible] = useState(false);\n  const [previewVisible, setPreviewVisible] = useState(false);\n  const [previewContent, setPreviewContent] = useState('');\n  const [smtpStatus, setSmtpStatus] = useState<any>(null);\n  \n  const [testEmailForm] = Form.useForm();\n  const [settingsForm] = Form.useForm();\n  const [previewForm] = Form.useForm();\n\n  // 获取邮件设置\n  const fetchEmailSettings = async () => {\n    try {\n      const response = await fetch('/api/v1/notifications/email-settings', {\n        headers: {\n          'Authorization': `Bearer ${localStorage.getItem('access_token')}`\n        }\n      });\n      \n      if (response.ok) {\n        const data = await response.json();\n        setEmailSettings(data);\n        settingsForm.setFieldsValue(data.notifications);\n      }\n    } catch (error) {\n      message.error('获取邮件设置失败');\n    }\n  };\n\n  // 获取邮件日志\n  const fetchEmailLogs = async () => {\n    try {\n      const response = await fetch('/api/v1/notifications/email-logs', {\n        headers: {\n          'Authorization': `Bearer ${localStorage.getItem('access_token')}`\n        }\n      });\n      \n      if (response.ok) {\n        const data = await response.json();\n        setEmailLogs(data.logs);\n      }\n    } catch (error) {\n      message.error('获取邮件日志失败');\n    }\n  };\n\n  // 获取邮件模板\n  const fetchEmailTemplates = async () => {\n    try {\n      const response = await fetch('/api/v1/notifications/email-templates', {\n        headers: {\n          'Authorization': `Bearer ${localStorage.getItem('access_token')}`\n        }\n      });\n      \n      if (response.ok) {\n        const data = await response.json();\n        setEmailTemplates(data.templates);\n      }\n    } catch (error) {\n      message.error('获取邮件模板失败');\n    }\n  };\n\n  // 获取SMTP状态\n  const fetchSmtpStatus = async () => {\n    try {\n      const response = await fetch('/api/v1/notifications/smtp-status', {\n        headers: {\n          'Authorization': `Bearer ${localStorage.getItem('access_token')}`\n        }\n      });\n      \n      if (response.ok) {\n        const data = await response.json();\n        setSmtpStatus(data);\n      }\n    } catch (error) {\n      message.error('获取SMTP状态失败');\n    }\n  };\n\n  useEffect(() => {\n    fetchEmailSettings();\n    fetchEmailLogs();\n    fetchEmailTemplates();\n    fetchSmtpStatus();\n  }, []);\n\n  // 更新邮件设置\n  const handleUpdateSettings = async (values: any) => {\n    try {\n      setLoading(true);\n      const response = await fetch('/api/v1/notifications/email-settings', {\n        method: 'PUT',\n        headers: {\n          'Content-Type': 'application/json',\n          'Authorization': `Bearer ${localStorage.getItem('access_token')}`\n        },\n        body: JSON.stringify({ notifications: values })\n      });\n      \n      if (response.ok) {\n        message.success('邮件设置已更新');\n        fetchEmailSettings();\n      } else {\n        message.error('更新邮件设置失败');\n      }\n    } catch (error) {\n      message.error('更新邮件设置失败');\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  // 发送测试邮件\n  const handleSendTestEmail = async (values: any) => {\n    try {\n      setLoading(true);\n      const response = await fetch('/api/v1/notifications/test-email', {\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n          'Authorization': `Bearer ${localStorage.getItem('access_token')}`\n        },\n        body: JSON.stringify(values)\n      });\n      \n      if (response.ok) {\n        message.success('测试邮件发送成功');\n        setTestEmailVisible(false);\n        testEmailForm.resetFields();\n        fetchEmailLogs();\n      } else {\n        const error = await response.json();\n        message.error(error.detail || '测试邮件发送失败');\n      }\n    } catch (error) {\n      message.error('测试邮件发送失败');\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  // 预览邮件模板\n  const handlePreviewTemplate = async (values: any) => {\n    try {\n      setLoading(true);\n      const response = await fetch('/api/v1/notifications/preview-template', {\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n          'Authorization': `Bearer ${localStorage.getItem('access_token')}`\n        },\n        body: JSON.stringify(values)\n      });\n      \n      if (response.ok) {\n        const data = await response.json();\n        setPreviewContent(data.html_content);\n        setPreviewVisible(true);\n      } else {\n        message.error('生成模板预览失败');\n      }\n    } catch (error) {\n      message.error('生成模板预览失败');\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  const getStatusIcon = (status: string) => {\n    switch (status) {\n      case 'success':\n        return <CheckCircleOutlined style={{ color: '#52c41a' }} />;\n      case 'failed':\n        return <CloseCircleOutlined style={{ color: '#ff4d4f' }} />;\n      case 'pending':\n        return <ExclamationCircleOutlined style={{ color: '#faad14' }} />;\n      default:\n        return null;\n    }\n  };\n\n  const getStatusColor = (status: string) => {\n    switch (status) {\n      case 'success':\n        return 'success';\n      case 'failed':\n        return 'error';\n      case 'pending':\n        return 'warning';\n      default:\n        return 'default';\n    }\n  };\n\n  const emailLogColumns = [\n    {\n      title: '收件人',\n      dataIndex: 'to_email',\n      key: 'to_email',\n    },\n    {\n      title: '主题',\n      dataIndex: 'subject',\n      key: 'subject',\n      ellipsis: true,\n    },\n    {\n      title: '模板',\n      dataIndex: 'template_name',\n      key: 'template_name',\n      render: (template: string) => {\n        const templateInfo = emailTemplates.find(t => t.id === template);\n        return templateInfo ? templateInfo.name : template;\n      }\n    },\n    {\n      title: '状态',\n      dataIndex: 'status',\n      key: 'status',\n      render: (status: string) => (\n        <Tag color={getStatusColor(status)} icon={getStatusIcon(status)}>\n          {status === 'success' ? '成功' : status === 'failed' ? '失败' : '发送中'}\n        </Tag>\n      ),\n    },\n    {\n      title: '发送时间',\n      dataIndex: 'sent_at',\n      key: 'sent_at',\n      render: (date: string) => new Date(date).toLocaleString('zh-CN'),\n    },\n    {\n      title: '错误信息',\n      dataIndex: 'error_message',\n      key: 'error_message',\n      render: (error: string) => error || '-',\n    },\n  ];\n\n  const tabItems = [\n    {\n      key: 'settings',\n      label: (\n        <span>\n          <SettingOutlined />\n          邮件设置\n        </span>\n      ),\n      children: (\n        <div>\n          {/* SMTP状态 */}\n          {smtpStatus && (\n            <Alert\n              message=\"SMTP服务状态\"\n              description={\n                <Descriptions size=\"small\" column={2}>\n                  <Descriptions.Item label=\"状态\">\n                    <Tag color={smtpStatus.status === 'healthy' ? 'success' : 'error'}>\n                      {smtpStatus.message}\n                    </Tag>\n                  </Descriptions.Item>\n                  <Descriptions.Item label=\"SMTP主机\">\n                    {smtpStatus.details.smtp_host || '未设置'}\n                  </Descriptions.Item>\n                  <Descriptions.Item label=\"端口\">\n                    {smtpStatus.details.smtp_port || '未设置'}\n                  </Descriptions.Item>\n                  <Descriptions.Item label=\"用户名\">\n                    {smtpStatus.details.smtp_user || '未设置'}\n                  </Descriptions.Item>\n                </Descriptions>\n              }\n              type={smtpStatus.status === 'healthy' ? 'success' : 'warning'}\n              showIcon\n              className=\"mb-4\"\n            />\n          )}\n\n          {/* 通知设置 */}\n          <Card title=\"通知设置\" size=\"small\">\n            <Form\n              form={settingsForm}\n              layout=\"vertical\"\n              onFinish={handleUpdateSettings}\n            >\n              <Form.Item name=\"email_verification\" valuePropName=\"checked\">\n                <Switch checkedChildren=\"开启\" unCheckedChildren=\"关闭\" />\n                <span className=\"ml-2\">邮箱验证通知</span>\n              </Form.Item>\n              \n              <Form.Item name=\"password_reset\" valuePropName=\"checked\">\n                <Switch checkedChildren=\"开启\" unCheckedChildren=\"关闭\" />\n                <span className=\"ml-2\">密码重置通知</span>\n              </Form.Item>\n              \n              <Form.Item name=\"welcome_email\" valuePropName=\"checked\">\n                <Switch checkedChildren=\"开启\" unCheckedChildren=\"关闭\" />\n                <span className=\"ml-2\">欢迎邮件</span>\n              </Form.Item>\n              \n              <Form.Item name=\"article_comments\" valuePropName=\"checked\">\n                <Switch checkedChildren=\"开启\" unCheckedChildren=\"关闭\" />\n                <span className=\"ml-2\">文章评论通知</span>\n              </Form.Item>\n              \n              <Form.Item name=\"team_invitations\" valuePropName=\"checked\">\n                <Switch checkedChildren=\"开启\" unCheckedChildren=\"关闭\" />\n                <span className=\"ml-2\">团队邀请通知</span>\n              </Form.Item>\n              \n              <Form.Item name=\"system_updates\" valuePropName=\"checked\">\n                <Switch checkedChildren=\"开启\" unCheckedChildren=\"关闭\" />\n                <span className=\"ml-2\">系统更新通知</span>\n              </Form.Item>\n              \n              <Form.Item>\n                <Space>\n                  <Button type=\"primary\" htmlType=\"submit\" loading={loading}>\n                    保存设置\n                  </Button>\n                  <Button onClick={() => setTestEmailVisible(true)}>\n                    发送测试邮件\n                  </Button>\n                </Space>\n              </Form.Item>\n            </Form>\n          </Card>\n        </div>\n      ),\n    },\n    {\n      key: 'templates',\n      label: (\n        <span>\n          <MailOutlined />\n          邮件模板\n        </span>\n      ),\n      children: (\n        <div>\n          <Card title=\"模板预览\" size=\"small\" className=\"mb-4\">\n            <Form\n              form={previewForm}\n              layout=\"inline\"\n              onFinish={handlePreviewTemplate}\n            >\n              <Form.Item name=\"template_name\" label=\"选择模板\" rules={[{ required: true }]}>\n                <Select placeholder=\"选择邮件模板\" style={{ width: 200 }}>\n                  {emailTemplates.map(template => (\n                    <Option key={template.id} value={template.id}>\n                      {template.name}\n                    </Option>\n                  ))}\n                </Select>\n              </Form.Item>\n              \n              <Form.Item>\n                <Button type=\"primary\" htmlType=\"submit\" icon={<EyeOutlined />} loading={loading}>\n                  预览模板\n                </Button>\n              </Form.Item>\n            </Form>\n          </Card>\n\n          <Card title=\"可用模板\" size=\"small\">\n            <div className=\"space-y-4\">\n              {emailTemplates.map(template => (\n                <div key={template.id} className=\"border rounded p-4\">\n                  <div className=\"flex justify-between items-start\">\n                    <div>\n                      <h4 className=\"font-medium\">{template.name}</h4>\n                      <p className=\"text-gray-600 text-sm\">{template.description}</p>\n                      <div className=\"mt-2\">\n                        <span className=\"text-xs text-gray-500\">可用变量: </span>\n                        {template.variables.map(variable => (\n                          <Tag key={variable} size=\"small\">{variable}</Tag>\n                        ))}\n                      </div>\n                    </div>\n                  </div>\n                </div>\n              ))}\n            </div>\n          </Card>\n        </div>\n      ),\n    },\n    {\n      key: 'logs',\n      label: (\n        <span>\n          <SendOutlined />\n          发送日志\n        </span>\n      ),\n      children: (\n        <Card title=\"邮件发送日志\" size=\"small\">\n          <Table\n            columns={emailLogColumns}\n            dataSource={emailLogs}\n            rowKey=\"id\"\n            pagination={{\n              pageSize: 10,\n              showSizeChanger: true,\n              showQuickJumper: true,\n              showTotal: (total) => `共 ${total} 条记录`,\n            }}\n          />\n        </Card>\n      ),\n    },\n  ];\n\n  return (\n    <div className=\"p-6\">\n      <Card title=\"邮件通知管理\" className=\"w-full\">\n        <Tabs items={tabItems} />\n      </Card>\n\n      {/* 测试邮件模态框 */}\n      <Modal\n        title=\"发送测试邮件\"\n        open={testEmailVisible}\n        onCancel={() => setTestEmailVisible(false)}\n        footer={null}\n      >\n        <Form\n          form={testEmailForm}\n          layout=\"vertical\"\n          onFinish={handleSendTestEmail}\n        >\n          <Form.Item\n            name=\"to_email\"\n            label=\"收件人邮箱\"\n            rules={[\n              { required: true, message: '请输入收件人邮箱' },\n              { type: 'email', message: '请输入有效的邮箱地址' }\n            ]}\n          >\n            <Input placeholder=\"请输入收件人邮箱\" />\n          </Form.Item>\n          \n          <Form.Item>\n            <Space>\n              <Button type=\"primary\" htmlType=\"submit\" loading={loading}>\n                发送测试邮件\n              </Button>\n              <Button onClick={() => setTestEmailVisible(false)}>\n                取消\n              </Button>\n            </Space>\n          </Form.Item>\n        </Form>\n      </Modal>\n\n      {/* 模板预览模态框 */}\n      <Modal\n        title=\"邮件模板预览\"\n        open={previewVisible}\n        onCancel={() => setPreviewVisible(false)}\n        footer={[\n          <Button key=\"close\" onClick={() => setPreviewVisible(false)}>\n            关闭\n          </Button>\n        ]}\n        width={800}\n      >\n        <div \n          dangerouslySetInnerHTML={{ __html: previewContent }}\n          style={{ maxHeight: '500px', overflow: 'auto' }}\n        />\n      </Modal>\n    </div>\n  );\n};\n\nexport default NotificationsPage;"
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import {
+  Card,
+  Tabs,
+  Form,
+  Switch,
+  Button,
+  Input,
+  Table,
+  Tag,
+  Space,
+  Modal,
+  message,
+  Alert,
+  Descriptions,
+  Select
+} from 'antd';
+import {
+  MailOutlined,
+  SettingOutlined,
+  SendOutlined,
+  EyeOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ExclamationCircleOutlined
+} from '@ant-design/icons';
+
+const { Option } = Select;
+
+interface EmailLog {
+  id: string;
+  to_email: string;
+  subject: string;
+  template_name: string;
+  status: 'success' | 'failed' | 'pending';
+  sent_at: string;
+  error_message?: string;
+}
+
+interface EmailTemplate {
+  id: string;
+  name: string;
+  description: string;
+  variables: string[];
+}
+
+const NotificationsPage: React.FC = () => {
+  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [testEmailVisible, setTestEmailVisible] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewContent, setPreviewContent] = useState('');
+  const [smtpStatus, setSmtpStatus] = useState<any>(null);
+  
+  const [testEmailForm] = Form.useForm();
+  const [settingsForm] = Form.useForm();
+  const [previewForm] = Form.useForm();
+
+  // 获取邮件设置
+  const fetchEmailSettings = async () => {
+    try {
+      const response = await fetch('/api/v1/notifications/email-settings', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        settingsForm.setFieldsValue(data.notifications);
+      }
+    } catch (error) {
+      message.error('获取邮件设置失败');
+    }
+  };
+
+  // 获取邮件日志
+  const fetchEmailLogs = async () => {
+    try {
+      const response = await fetch('/api/v1/notifications/email-logs', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setEmailLogs(data.logs);
+      }
+    } catch (error) {
+      message.error('获取邮件日志失败');
+    }
+  };
+
+  // 获取邮件模板
+  const fetchEmailTemplates = async () => {
+    try {
+      const response = await fetch('/api/v1/notifications/email-templates', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setEmailTemplates(data.templates);
+      }
+    } catch (error) {
+      message.error('获取邮件模板失败');
+    }
+  };
+
+  // 获取SMTP状态
+  const fetchSmtpStatus = async () => {
+    try {
+      const response = await fetch('/api/v1/notifications/smtp-status', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSmtpStatus(data);
+      }
+    } catch (error) {
+      message.error('获取SMTP状态失败');
+    }
+  };
+
+  useEffect(() => {
+    fetchEmailSettings();
+    fetchEmailLogs();
+    fetchEmailTemplates();
+    fetchSmtpStatus();
+  }, []);
+
+  // 更新邮件设置
+  const handleUpdateSettings = async (values: any) => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/v1/notifications/email-settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: JSON.stringify({ notifications: values })
+      });
+      
+      if (response.ok) {
+        message.success('邮件设置已更新');
+        fetchEmailSettings();
+      } else {
+        message.error('更新邮件设置失败');
+      }
+    } catch (error) {
+      message.error('更新邮件设置失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 发送测试邮件
+  const handleSendTestEmail = async (values: any) => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/v1/notifications/test-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: JSON.stringify(values)
+      });
+      
+      if (response.ok) {
+        message.success('测试邮件发送成功');
+        setTestEmailVisible(false);
+        testEmailForm.resetFields();
+        fetchEmailLogs();
+      } else {
+        const error = await response.json();
+        message.error(error.detail || '测试邮件发送失败');
+      }
+    } catch (error) {
+      message.error('测试邮件发送失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 预览邮件模板
+  const handlePreviewTemplate = async (values: any) => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/v1/notifications/preview-template', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: JSON.stringify(values)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPreviewContent(data.html_content);
+        setPreviewVisible(true);
+      } else {
+        message.error('生成模板预览失败');
+      }
+    } catch (error) {
+      message.error('生成模板预览失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircleOutlined style={{ color: '#52c41a' }} />;
+      case 'failed':
+        return <CloseCircleOutlined style={{ color: '#ff4d4f' }} />;
+      case 'pending':
+        return <ExclamationCircleOutlined style={{ color: '#faad14' }} />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'success';
+      case 'failed':
+        return 'error';
+      case 'pending':
+        return 'warning';
+      default:
+        return 'default';
+    }
+  };
+
+  const emailLogColumns = [
+    {
+      title: '收件人',
+      dataIndex: 'to_email',
+      key: 'to_email',
+    },
+    {
+      title: '主题',
+      dataIndex: 'subject',
+      key: 'subject',
+      ellipsis: true,
+    },
+    {
+      title: '模板',
+      dataIndex: 'template_name',
+      key: 'template_name',
+      render: (template: string) => {
+        const templateInfo = emailTemplates.find(t => t.id === template);
+        return templateInfo ? templateInfo.name : template;
+      }
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => (
+        <Tag color={getStatusColor(status)} icon={getStatusIcon(status)}>
+          {status === 'success' ? '成功' : status === 'failed' ? '失败' : '发送中'}
+        </Tag>
+      ),
+    },
+    {
+      title: '发送时间',
+      dataIndex: 'sent_at',
+      key: 'sent_at',
+      render: (date: string) => new Date(date).toLocaleString('zh-CN'),
+    },
+    {
+      title: '错误信息',
+      dataIndex: 'error_message',
+      key: 'error_message',
+      render: (error: string) => error || '-',
+    },
+  ];
+
+  const tabItems = [
+    {
+      key: 'settings',
+      label: (
+        <span>
+          <SettingOutlined />
+          邮件设置
+        </span>
+      ),
+      children: (
+        <div>
+          {/* SMTP状态 */}
+          {smtpStatus && (
+            <Alert
+              message="SMTP服务状态"
+              description={
+                <Descriptions size="small" column={2}>
+                  <Descriptions.Item label="状态">
+                    <Tag color={smtpStatus.status === 'healthy' ? 'success' : 'error'}>
+                      {smtpStatus.message}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="SMTP主机">
+                    {smtpStatus.details.smtp_host || '未设置'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="端口">
+                    {smtpStatus.details.smtp_port || '未设置'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="用户名">
+                    {smtpStatus.details.smtp_user || '未设置'}
+                  </Descriptions.Item>
+                </Descriptions>
+              }
+              type={smtpStatus.status === 'healthy' ? 'success' : 'warning'}
+              showIcon
+              className="mb-4"
+            />
+          )}
+
+          {/* 通知设置 */}
+          <Card title="通知设置" size="small">
+            <Form
+              form={settingsForm}
+              layout="vertical"
+              onFinish={handleUpdateSettings}
+            >
+              <Form.Item name="email_verification" valuePropName="checked">
+                <Switch checkedChildren="开启" unCheckedChildren="关闭" />
+                <span className="ml-2">邮箱验证通知</span>
+              </Form.Item>
+              
+              <Form.Item name="password_reset" valuePropName="checked">
+                <Switch checkedChildren="开启" unCheckedChildren="关闭" />
+                <span className="ml-2">密码重置通知</span>
+              </Form.Item>
+              
+              <Form.Item name="welcome_email" valuePropName="checked">
+                <Switch checkedChildren="开启" unCheckedChildren="关闭" />
+                <span className="ml-2">欢迎邮件</span>
+              </Form.Item>
+              
+              <Form.Item name="article_comments" valuePropName="checked">
+                <Switch checkedChildren="开启" unCheckedChildren="关闭" />
+                <span className="ml-2">文章评论通知</span>
+              </Form.Item>
+              
+              <Form.Item name="team_invitations" valuePropName="checked">
+                <Switch checkedChildren="开启" unCheckedChildren="关闭" />
+                <span className="ml-2">团队邀请通知</span>
+              </Form.Item>
+              
+              <Form.Item name="system_updates" valuePropName="checked">
+                <Switch checkedChildren="开启" unCheckedChildren="关闭" />
+                <span className="ml-2">系统更新通知</span>
+              </Form.Item>
+              
+              <Form.Item>
+                <Space>
+                  <Button type="primary" htmlType="submit" loading={loading}>
+                    保存设置
+                  </Button>
+                  <Button onClick={() => setTestEmailVisible(true)}>
+                    发送测试邮件
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </Card>
+        </div>
+      ),
+    },
+    {
+      key: 'templates',
+      label: (
+        <span>
+          <MailOutlined />
+          邮件模板
+        </span>
+      ),
+      children: (
+        <div>
+          <Card title="模板预览" size="small" className="mb-4">
+            <Form
+              form={previewForm}
+              layout="inline"
+              onFinish={handlePreviewTemplate}
+            >
+              <Form.Item name="template_name" label="选择模板" rules={[{ required: true }]}>
+                <Select placeholder="选择邮件模板" style={{ width: 200 }}>
+                  {emailTemplates.map(template => (
+                    <Option key={template.id} value={template.id}>
+                      {template.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              
+              <Form.Item>
+                <Button type="primary" htmlType="submit" icon={<EyeOutlined />} loading={loading}>
+                  预览模板
+                </Button>
+              </Form.Item>
+            </Form>
+          </Card>
+
+          <Card title="可用模板" size="small">
+            <div className="space-y-4">
+              {emailTemplates.map(template => (
+                <div key={template.id} className="border rounded p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">{template.name}</h4>
+                      <p className="text-gray-600 text-sm">{template.description}</p>
+                      <div className="mt-2">
+                        <span className="text-xs text-gray-500">可用变量: </span>
+                        {template.variables.map(variable => (
+                          <Tag key={variable}>{variable}</Tag>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      ),
+    },
+    {
+      key: 'logs',
+      label: (
+        <span>
+          <SendOutlined />
+          发送日志
+        </span>
+      ),
+      children: (
+        <Card title="邮件发送日志" size="small">
+          <Table
+            columns={emailLogColumns}
+            dataSource={emailLogs}
+            rowKey="id"
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条记录`,
+            }}
+          />
+        </Card>
+      ),
+    },
+  ];
+
+  return (
+    <div className="p-6">
+      <Card title="邮件通知管理" className="w-full">
+        <Tabs items={tabItems} />
+      </Card>
+
+      {/* 测试邮件模态框 */}
+      <Modal
+        title="发送测试邮件"
+        open={testEmailVisible}
+        onCancel={() => setTestEmailVisible(false)}
+        footer={null}
+      >
+        <Form
+          form={testEmailForm}
+          layout="vertical"
+          onFinish={handleSendTestEmail}
+        >
+          <Form.Item
+            name="to_email"
+            label="收件人邮箱"
+            rules={[
+              { required: true, message: '请输入收件人邮箱' },
+              { type: 'email', message: '请输入有效的邮箱地址' }
+            ]}
+          >
+            <Input placeholder="请输入收件人邮箱" />
+          </Form.Item>
+          
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" loading={loading}>
+                发送测试邮件
+              </Button>
+              <Button onClick={() => setTestEmailVisible(false)}>
+                取消
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 模板预览模态框 */}
+      <Modal
+        title="邮件模板预览"
+        open={previewVisible}
+        onCancel={() => setPreviewVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setPreviewVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={800}
+      >
+        <div 
+          dangerouslySetInnerHTML={{ __html: previewContent }}
+          style={{ maxHeight: '500px', overflow: 'auto' }}
+        />
+      </Modal>
+    </div>
+  );
+};
+
+export default NotificationsPage;

@@ -55,6 +55,12 @@ class FileService:
         ]
         for directory in directories:
             os.makedirs(directory, exist_ok=True)
+
+    def _coerce_uuid(self, value: str) -> Optional[uuid.UUID]:
+        try:
+            return value if isinstance(value, uuid.UUID) else uuid.UUID(str(value))
+        except (TypeError, ValueError):
+            return None
     
     async def validate_file(self, file: UploadFile) -> Dict[str, Any]:
         """验证文件并返回文件信息"""
@@ -130,7 +136,8 @@ class FileService:
         file_info = await self.validate_file(file)
         
         # 生成唯一文件ID和文件名
-        file_id = str(uuid.uuid4())
+        file_id_obj = uuid.uuid4()
+        file_id = str(file_id_obj)
         file_extension = file_info["extension"]
         new_filename = f"{file_id}{file_extension}"
         
@@ -148,8 +155,8 @@ class FileService:
         try:
             # 创建数据库记录
             db_file = UploadedFile(
-                id=file_id,
-                user_id=user_id,
+                id=file_id_obj,
+                user_id=self._coerce_uuid(user_id),
                 original_name=file.filename,
                 file_name=new_filename,
                 file_path=file_path,
@@ -288,13 +295,19 @@ class FileService:
         # 处理缩略图请求
         if file_id.endswith("_thumb"):
             base_id = file_id.replace("_thumb", "")
+            base_uuid = self._coerce_uuid(base_id)
+            if base_uuid is None:
+                return None
             result = await self.db.execute(
-                select(UploadedFile).where(UploadedFile.id == base_id)
+                select(UploadedFile).where(UploadedFile.id == base_uuid)
             )
             return result.scalar_one_or_none()
-        
+
+        file_uuid = self._coerce_uuid(file_id)
+        if file_uuid is None:
+            return None
         result = await self.db.execute(
-            select(UploadedFile).where(UploadedFile.id == file_id)
+            select(UploadedFile).where(UploadedFile.id == file_uuid)
         )
         return result.scalar_one_or_none()
     
@@ -324,7 +337,8 @@ class FileService:
                 raise HTTPException(status_code=404, detail="文件不存在")
             
             # 检查权限（只有文件上传者可以删除）
-            if db_file.user_id != user_id:
+            user_uuid = self._coerce_uuid(user_id)
+            if db_file.user_id != user_uuid:
                 raise HTTPException(status_code=403, detail="无权限删除此文件")
             
             # 删除物理文件
@@ -350,13 +364,17 @@ class FileService:
         """获取用户的文件列表"""
         offset = (page - 1) * size
         
-        query = select(UploadedFile).where(UploadedFile.user_id == user_id)
+        user_uuid = self._coerce_uuid(user_id)
+        if user_uuid is None:
+            return {"files": [], "total": 0, "page": page, "size": size, "pages": 0}
+
+        query = select(UploadedFile).where(UploadedFile.user_id == user_uuid)
         if file_type:
             query = query.where(UploadedFile.file_type == file_type)
         
         # 获取总数
         count_result = await self.db.execute(
-            select(func.count(UploadedFile.id)).where(UploadedFile.user_id == user_id)
+            select(func.count(UploadedFile.id)).where(UploadedFile.user_id == user_uuid)
         )
         total = count_result.scalar()
         
@@ -366,7 +384,29 @@ class FileService:
         files = result.scalars().all()
         
         return {
-            "files": files,
+            "files": [
+                {
+                    "id": str(db_file.id),
+                    "original_name": db_file.original_name,
+                    "file_name": db_file.file_name,
+                    "file_size": db_file.file_size,
+                    "mime_type": db_file.mime_type,
+                    "file_type": db_file.file_type.value,
+                    "status": db_file.status.value,
+                    "download_count": db_file.download_count,
+                    "is_public": db_file.is_public,
+                    "metadata": db_file.file_metadata,
+                    "created_at": db_file.created_at,
+                    "updated_at": db_file.updated_at,
+                    "file_url": f"/api/v1/files/download/{db_file.id}",
+                    "thumbnail_url": (
+                        f"/api/v1/files/download/{db_file.id}_thumb"
+                        if db_file.thumbnail_path
+                        else None
+                    ),
+                }
+                for db_file in files
+            ],
             "total": total,
             "page": page,
             "size": size,

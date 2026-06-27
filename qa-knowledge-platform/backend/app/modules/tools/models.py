@@ -8,8 +8,15 @@ import enum
 from app.core.database import Base
 
 
+class BusinessDomain(str, enum.Enum):
+    SAAS = "saas"
+    GAME = "game"
+    COMMON = "common"
+
+
 class ToolCategoryType(str, enum.Enum):
     FUNCTIONAL = "功能测试"
+    API = "接口测试"
     PERFORMANCE = "性能测试"
     AUTOMATION = "自动化测试"
     MOBILE = "移动测试"
@@ -24,6 +31,9 @@ class ToolCategory(Base):
     name = Column(String(100), nullable=False)
     description = Column(Text)
     type = Column(Enum(ToolCategoryType), nullable=False)
+    business_domain = Column(
+        Enum(BusinessDomain), default=BusinessDomain.COMMON, nullable=False
+    )
     sort_order = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -36,6 +46,10 @@ class Tool(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     category_id = Column(UUID(as_uuid=True), ForeignKey("tool_categories.id"), nullable=False)
+    business_domain = Column(
+        Enum(BusinessDomain), default=BusinessDomain.COMMON, nullable=False
+    )
+    project_key = Column(String(100))
     name = Column(String(100), nullable=False)
     url = Column(String(500), nullable=False)
     description = Column(Text, nullable=False)

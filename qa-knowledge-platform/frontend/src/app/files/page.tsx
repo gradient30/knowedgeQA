@@ -1,1 +1,257 @@
-'use client';\n\nimport React, { useState, useEffect } from 'react';\nimport { Card, Tabs, Table, Button, Space, Tag, message, Modal, Image } from 'antd';\nimport { DownloadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';\nimport FileUpload from '@/components/common/FileUpload/FileUpload';\n\ninterface FileInfo {\n  id: string;\n  original_name: string;\n  file_name: string;\n  file_size: number;\n  mime_type: string;\n  file_type: string;\n  status: string;\n  download_count: number;\n  is_public: boolean;\n  created_at: string;\n  file_url: string;\n  thumbnail_url?: string;\n}\n\nconst FilesPage: React.FC = () => {\n  const [files, setFiles] = useState<FileInfo[]>([]);\n  const [loading, setLoading] = useState(false);\n  const [previewVisible, setPreviewVisible] = useState(false);\n  const [previewFile, setPreviewFile] = useState<FileInfo | null>(null);\n\n  const fetchFiles = async () => {\n    try {\n      setLoading(true);\n      const response = await fetch('/api/v1/files/list', {\n        headers: {\n          'Authorization': `Bearer ${localStorage.getItem('access_token')}`\n        }\n      });\n\n      if (response.ok) {\n        const data = await response.json();\n        setFiles(data.files || []);\n      } else {\n        message.error('获取文件列表失败');\n      }\n    } catch (error) {\n      message.error('获取文件列表失败');\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  useEffect(() => {\n    fetchFiles();\n  }, []);\n\n  const handleDownload = (file: FileInfo) => {\n    window.open(file.file_url, '_blank');\n  };\n\n  const handlePreview = (file: FileInfo) => {\n    setPreviewFile(file);\n    setPreviewVisible(true);\n  };\n\n  const handleDelete = async (fileId: string) => {\n    try {\n      const response = await fetch(`/api/v1/files/${fileId}`, {\n        method: 'DELETE',\n        headers: {\n          'Authorization': `Bearer ${localStorage.getItem('access_token')}`\n        }\n      });\n\n      if (response.ok) {\n        message.success('文件删除成功');\n        fetchFiles(); // 重新获取文件列表\n      } else {\n        message.error('删除文件失败');\n      }\n    } catch (error) {\n      message.error('删除文件失败');\n    }\n  };\n\n  const formatFileSize = (bytes: number) => {\n    if (bytes === 0) return '0 B';\n    const k = 1024;\n    const sizes = ['B', 'KB', 'MB', 'GB'];\n    const i = Math.floor(Math.log(bytes) / Math.log(k));\n    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];\n  };\n\n  const getFileTypeColor = (fileType: string) => {\n    const colors: { [key: string]: string } = {\n      'image': 'green',\n      'document': 'blue',\n      'archive': 'orange',\n      'other': 'default'\n    };\n    return colors[fileType] || 'default';\n  };\n\n  const isImageFile = (mimeType: string) => {\n    return mimeType.startsWith('image/');\n  };\n\n  const columns = [\n    {\n      title: '文件名',\n      dataIndex: 'original_name',\n      key: 'original_name',\n      ellipsis: true,\n    },\n    {\n      title: '类型',\n      dataIndex: 'file_type',\n      key: 'file_type',\n      render: (fileType: string) => (\n        <Tag color={getFileTypeColor(fileType)}>{fileType}</Tag>\n      ),\n    },\n    {\n      title: '大小',\n      dataIndex: 'file_size',\n      key: 'file_size',\n      render: (size: number) => formatFileSize(size),\n    },\n    {\n      title: '状态',\n      dataIndex: 'is_public',\n      key: 'is_public',\n      render: (isPublic: boolean) => (\n        <Tag color={isPublic ? 'green' : 'orange'}>\n          {isPublic ? '公开' : '私有'}\n        </Tag>\n      ),\n    },\n    {\n      title: '下载次数',\n      dataIndex: 'download_count',\n      key: 'download_count',\n    },\n    {\n      title: '上传时间',\n      dataIndex: 'created_at',\n      key: 'created_at',\n      render: (date: string) => new Date(date).toLocaleString('zh-CN'),\n    },\n    {\n      title: '操作',\n      key: 'actions',\n      render: (_, file: FileInfo) => (\n        <Space>\n          <Button\n            type=\"text\"\n            icon={<EyeOutlined />}\n            onClick={() => handlePreview(file)}\n          />\n          <Button\n            type=\"text\"\n            icon={<DownloadOutlined />}\n            onClick={() => handleDownload(file)}\n          />\n          <Button\n            type=\"text\"\n            danger\n            icon={<DeleteOutlined />}\n            onClick={() => handleDelete(file.id)}\n          />\n        </Space>\n      ),\n    },\n  ];\n\n  const tabItems = [\n    {\n      key: 'upload',\n      label: '上传文件',\n      children: (\n        <FileUpload\n          maxCount={10}\n          maxSize={50}\n          onUploadSuccess={() => {\n            message.success('文件上传成功');\n            fetchFiles(); // 重新获取文件列表\n          }}\n          onUploadError={(error) => {\n            message.error(`上传失败: ${error}`);\n          }}\n        />\n      ),\n    },\n    {\n      key: 'manage',\n      label: '文件管理',\n      children: (\n        <Table\n          columns={columns}\n          dataSource={files}\n          rowKey=\"id\"\n          loading={loading}\n          pagination={{\n            pageSize: 10,\n            showSizeChanger: true,\n            showQuickJumper: true,\n            showTotal: (total) => `共 ${total} 个文件`,\n          }}\n        />\n      ),\n    },\n  ];\n\n  return (\n    <div className=\"p-6\">\n      <Card title=\"文件中心\" className=\"w-full\">\n        <Tabs items={tabItems} />\n      </Card>\n\n      {/* 文件预览模态框 */}\n      <Modal\n        title={previewFile?.original_name}\n        open={previewVisible}\n        onCancel={() => setPreviewVisible(false)}\n        footer={[\n          <Button key=\"download\" onClick={() => previewFile && handleDownload(previewFile)}>\n            下载文件\n          </Button>,\n          <Button key=\"close\" onClick={() => setPreviewVisible(false)}>\n            关闭\n          </Button>,\n        ]}\n        width={800}\n      >\n        {previewFile && (\n          <div className=\"text-center\">\n            {isImageFile(previewFile.mime_type) ? (\n              <Image\n                src={previewFile.thumbnail_url || previewFile.file_url}\n                alt={previewFile.original_name}\n                style={{ maxWidth: '100%', maxHeight: '500px' }}\n              />\n            ) : (\n              <div className=\"p-8\">\n                <p className=\"text-gray-500 mb-4\">无法预览此文件类型</p>\n                <p><strong>文件名:</strong> {previewFile.original_name}</p>\n                <p><strong>文件大小:</strong> {formatFileSize(previewFile.file_size)}</p>\n                <p><strong>文件类型:</strong> {previewFile.mime_type}</p>\n                <p><strong>上传时间:</strong> {new Date(previewFile.created_at).toLocaleString('zh-CN')}</p>\n              </div>\n            )}\n          </div>\n        )}\n      </Modal>\n    </div>\n  );\n};\n\nexport default FilesPage;"
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Card, Tabs, Table, Button, Space, Tag, message, Modal, Image } from 'antd';
+import { DownloadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import FileUpload from '@/components/common/FileUpload/FileUpload';
+
+interface FileInfo {
+  id: string;
+  original_name: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  file_type: string;
+  status: string;
+  download_count: number;
+  is_public: boolean;
+  created_at: string;
+  file_url: string;
+  thumbnail_url?: string;
+}
+
+const FilesPage: React.FC = () => {
+  const [files, setFiles] = useState<FileInfo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewFile, setPreviewFile] = useState<FileInfo | null>(null);
+
+  const fetchFiles = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/v1/files/list', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFiles(data.files || []);
+      } else {
+        message.error('获取文件列表失败');
+      }
+    } catch (error) {
+      message.error('获取文件列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFiles();
+  }, []);
+
+  const handleDownload = (file: FileInfo) => {
+    window.open(file.file_url, '_blank');
+  };
+
+  const handlePreview = (file: FileInfo) => {
+    setPreviewFile(file);
+    setPreviewVisible(true);
+  };
+
+  const handleDelete = async (fileId: string) => {
+    try {
+      const response = await fetch(`/api/v1/files/${fileId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
+      if (response.ok) {
+        message.success('文件删除成功');
+        fetchFiles(); // 重新获取文件列表
+      } else {
+        message.error('删除文件失败');
+      }
+    } catch (error) {
+      message.error('删除文件失败');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getFileTypeColor = (fileType: string) => {
+    const colors: { [key: string]: string } = {
+      'image': 'green',
+      'document': 'blue',
+      'archive': 'orange',
+      'other': 'default'
+    };
+    return colors[fileType] || 'default';
+  };
+
+  const isImageFile = (mimeType: string) => {
+    return mimeType.startsWith('image/');
+  };
+
+  const columns = [
+    {
+      title: '文件名',
+      dataIndex: 'original_name',
+      key: 'original_name',
+      ellipsis: true,
+    },
+    {
+      title: '类型',
+      dataIndex: 'file_type',
+      key: 'file_type',
+      render: (fileType: string) => (
+        <Tag color={getFileTypeColor(fileType)}>{fileType}</Tag>
+      ),
+    },
+    {
+      title: '大小',
+      dataIndex: 'file_size',
+      key: 'file_size',
+      render: (size: number) => formatFileSize(size),
+    },
+    {
+      title: '状态',
+      dataIndex: 'is_public',
+      key: 'is_public',
+      render: (isPublic: boolean) => (
+        <Tag color={isPublic ? 'green' : 'orange'}>
+          {isPublic ? '公开' : '私有'}
+        </Tag>
+      ),
+    },
+    {
+      title: '下载次数',
+      dataIndex: 'download_count',
+      key: 'download_count',
+    },
+    {
+      title: '上传时间',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date: string) => new Date(date).toLocaleString('zh-CN'),
+    },
+    {
+      title: '操作',
+      key: 'actions',
+      render: (_: unknown, file: FileInfo) => (
+        <Space>
+          <Button
+            type="text"
+            icon={<EyeOutlined />}
+            onClick={() => handlePreview(file)}
+          />
+          <Button
+            type="text"
+            icon={<DownloadOutlined />}
+            onClick={() => handleDownload(file)}
+          />
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(file.id)}
+          />
+        </Space>
+      ),
+    },
+  ];
+
+  const tabItems = [
+    {
+      key: 'upload',
+      label: '上传文件',
+      children: (
+        <FileUpload
+          maxCount={10}
+          maxSize={50}
+          onUploadSuccess={() => {
+            message.success('文件上传成功');
+            fetchFiles(); // 重新获取文件列表
+          }}
+          onUploadError={(error) => {
+            message.error(`上传失败: ${error}`);
+          }}
+        />
+      ),
+    },
+    {
+      key: 'manage',
+      label: '文件管理',
+      children: (
+        <Table
+          columns={columns}
+          dataSource={files}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 个文件`,
+          }}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <div className="p-6">
+      <Card title="文件中心" className="w-full">
+        <Tabs items={tabItems} />
+      </Card>
+
+      {/* 文件预览模态框 */}
+      <Modal
+        title={previewFile?.original_name}
+        open={previewVisible}
+        onCancel={() => setPreviewVisible(false)}
+        footer={[
+          <Button key="download" onClick={() => previewFile && handleDownload(previewFile)}>
+            下载文件
+          </Button>,
+          <Button key="close" onClick={() => setPreviewVisible(false)}>
+            关闭
+          </Button>,
+        ]}
+        width={800}
+      >
+        {previewFile && (
+          <div className="text-center">
+            {isImageFile(previewFile.mime_type) ? (
+              <Image
+                src={previewFile.thumbnail_url || previewFile.file_url}
+                alt={previewFile.original_name}
+                style={{ maxWidth: '100%', maxHeight: '500px' }}
+              />
+            ) : (
+              <div className="p-8">
+                <p className="text-gray-500 mb-4">无法预览此文件类型</p>
+                <p><strong>文件名:</strong> {previewFile.original_name}</p>
+                <p><strong>文件大小:</strong> {formatFileSize(previewFile.file_size)}</p>
+                <p><strong>文件类型:</strong> {previewFile.mime_type}</p>
+                <p><strong>上传时间:</strong> {new Date(previewFile.created_at).toLocaleString('zh-CN')}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+export default FilesPage;

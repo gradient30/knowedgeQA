@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Button, Typography, Space, Avatar, Tag, List, Modal, Form, Input, Select, message, Divider } from 'antd';
-import { TeamOutlined, UserAddOutlined, SettingOutlined, UserOutlined, CrownOutlined, EditOutlined } from '@ant-design/icons';
+import { Card, Button, Typography, Space, Avatar, Tag, List, Modal, Form, Input, Select, message } from 'antd';
+import { TeamOutlined, UserAddOutlined, UserOutlined, CrownOutlined, EditOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/lib/store/auth';
 
 const { Title, Text } = Typography;

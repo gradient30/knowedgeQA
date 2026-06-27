@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, Result, Button, Spin, Alert } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, MailOutlined } from '@ant-design/icons';
 
-export default function ConfirmEmailChangePage() {
+function ConfirmEmailChangeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -149,5 +149,13 @@ export default function ConfirmEmailChangePage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function ConfirmEmailChangePage() {
+  return (
+    <Suspense fallback={null}>
+      <ConfirmEmailChangeContent />
+    </Suspense>
   );
 }

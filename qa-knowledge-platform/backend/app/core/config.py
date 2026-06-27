@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_TLS: bool = True
+    ENABLE_EMAIL_QUEUE: bool = False
     
     # Celery配置
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"

@@ -24,6 +24,12 @@ celery_app.conf.update(
     task_soft_time_limit=25 * 60,  # 25分钟
     worker_prefetch_multiplier=1,
     worker_max_tasks_per_child=1000,
+    broker_connection_timeout=1,
+    broker_transport_options={
+        "socket_connect_timeout": 1,
+        "socket_timeout": 1,
+        "retry_on_timeout": False,
+    },
 )
 
 # 定时任务配置

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.auth import router as auth_router
-from app.modules.users.api import router as users_router
+from app.modules.users.api import router as users_router, teams_router
 from app.modules.knowledge.api import router as knowledge_router
 from app.modules.tools.api import router as tools_router
 from app.modules.news.api import router as news_router
@@ -19,3 +19,6 @@ api_router.include_router(tools_router, prefix="/tools", tags=["工具库"])
 api_router.include_router(news_router, prefix="/news", tags=["资讯"])
 api_router.include_router(files_router, prefix="/files", tags=["文件管理"])
 api_router.include_router(notifications_router, prefix="/notifications", tags=["邮件通知"])
+
+# 兼容早期前端和测试使用的顶层团队路径，例如 /api/v1/teams。
+api_router.include_router(teams_router, prefix="", tags=["团队管理兼容"])
