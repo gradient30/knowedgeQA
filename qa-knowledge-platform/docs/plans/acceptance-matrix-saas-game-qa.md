@@ -33,7 +33,19 @@ Use a local dev stack with backend on `8000` and frontend on `3000`.
 ## Known Gaps
 
 - Full Docker stack verification depends on local PostgreSQL, Redis, and Docker availability.
+- Final integration gate on this workstation is blocked because `docker --version` is not available and `bash --version` timed out, so `scripts/project-manager.sh start --env dev` cannot run here.
 - `python -m pytest tests/ --cov=app` currently requires `pytest-cov`; without that plugin, pytest rejects `--cov=app`.
 - `python -m pytest tests/ -q` timed out in the local shell after 124 seconds because existing full-suite tests depend on integrated app services. Use the focused 13-test backend suite as the current repeatable gate until the full stack is running.
 - End-to-end browser screenshots are not yet attached; add them after a running integrated stack is available.
 - P3 intelligent recommendations require reviewed production content and evaluation datasets before release.
+
+## Final Integration Gate Attempt
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Docker availability | `docker --version` | Blocked: command not found. |
+| Bash availability | `bash --version` | Blocked: command timed out in local shell. |
+| Full stack startup | `scripts/project-manager.sh start --env dev` | Not executed because Docker and Bash prerequisites are unavailable. |
+| Backend focused regression | `python -m pytest tests/test_taxonomy.py tests/test_knowledge_api.py tests/test_tools_api.py tests/test_news_api.py -q` | Passed: 13 tests. |
+| Frontend release build | `pnpm build` | Passed with warnings. |
+| Documentation gate | `node scripts/verify-acceptance-docs.js` | Passed. |
