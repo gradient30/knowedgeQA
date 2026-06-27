@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, Form, Input, Button, Typography, Alert } from 'antd';
 import { LockOutlined, CheckCircleOutlined } from '@ant-design/icons';
@@ -8,7 +8,7 @@ import AuthAPI from '@/lib/api/auth';
 
 const { Title, Text } = Typography;
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [form] = Form.useForm();
@@ -218,5 +218,13 @@ export default function ResetPasswordPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

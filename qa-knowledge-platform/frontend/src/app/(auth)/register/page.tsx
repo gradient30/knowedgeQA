@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Card, Form, Input, Button, Typography, Alert, Divider, Select, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, EditOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/lib/store/auth';
-import { RegisterRequest, UserRole, ProfessionalRole, ExperienceLevel, Specialty } from '@/types/auth.types';
+import { RegisterRequest } from '@/types/auth.types';
 
 const { Title, Text } = Typography;
 const { Option } = Select;

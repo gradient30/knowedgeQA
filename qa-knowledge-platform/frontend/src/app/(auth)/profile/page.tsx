@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, Typography, Alert, Avatar, Upload, Divider, Space, Tag, Modal, message, Select } from 'antd';
-import { UserOutlined, EditOutlined, CameraOutlined, SaveOutlined, LockOutlined, DownloadOutlined, UploadOutlined, MailOutlined } from '@ant-design/icons';
+import { UserOutlined, EditOutlined, CameraOutlined, SaveOutlined, LockOutlined, DownloadOutlined, MailOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/lib/store/auth';
 import { UserUpdate } from '@/types/auth.types';
 import type { UploadProps } from 'antd';
@@ -593,7 +593,7 @@ export default function ProfilePage() {
               rules={[
                 { required: true, message: '请输入新邮箱地址' },
                 { type: 'email', message: '请输入有效的邮箱地址' },
-                ({ getFieldValue }) => ({
+                () => ({
                   validator(_, value) {
                     if (!value || value !== user?.email) {
                       return Promise.resolve();

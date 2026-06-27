@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, Form, Input, Button, Typography, Alert, Divider, Space } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
+import { LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/lib/store/auth';
 import { LoginRequest } from '@/types/auth.types';
 
 const { Title, Text } = Typography;
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, isLoading, error, isAuthenticated, setError } = useAuthStore();
@@ -230,5 +230,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   );
 }

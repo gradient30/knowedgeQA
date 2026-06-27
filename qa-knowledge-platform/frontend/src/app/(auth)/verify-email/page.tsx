@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, Button, Typography, Alert, Spin } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
@@ -8,7 +8,7 @@ import AuthAPI from '@/lib/api/auth';
 
 const { Title, Text } = Typography;
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
@@ -120,5 +120,13 @@ export default function VerifyEmailPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }
