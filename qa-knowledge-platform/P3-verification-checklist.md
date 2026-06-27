@@ -132,4 +132,11 @@
 2. 验证现有用户的数据兼容性
 3. 测试个人资料编辑功能
 4. 验证角色信息在其他页面的正确显示
-5. 测试数据库迁移的稳定性"
+5. 测试数据库迁移的稳定性
+
+## SaaS/Game Baseline Acceptance
+
+- [ ] User profile specialties include API, automation, performance, security, game, and DevOps QA contexts.
+- [ ] Future intelligent recommendations only use reviewed SaaS/game content with source links.
+- [ ] P3 release requires a curated dataset for similar article, similar bug, tool recommendation, and news summary evaluation.
+- Evidence commands: `python -m pytest tests/test_taxonomy.py -q`, `node scripts/verify-acceptance-docs.js`.

@@ -98,4 +98,11 @@
 1. 配置真实的SMTP服务器测试邮件发送
 2. 验证不同邮件模板的渲染效果
 3. 测试邮件通知开关的实际效果
-4. 验证管理员权限控制（后续实现）"
+4. 验证管理员权限控制（后续实现）
+
+## SaaS/Game Baseline Acceptance
+
+- [ ] Admin can review or reject SaaS incident review content before publication.
+- [ ] Admin can publish or reject game QA intelligence from configured news sources.
+- [ ] Tool rating, favorite, and usage actions are available for SaaS and game tools.
+- Evidence commands: `python -m pytest tests/test_tools_api.py tests/test_news_api.py -q`, `pnpm lint`.
