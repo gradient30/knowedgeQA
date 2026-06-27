@@ -31,12 +31,49 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+COMPOSE_COMMAND=()
+
+detect_compose() {
+    if [ ${#COMPOSE_COMMAND[@]} -gt 0 ]; then
+        return
+    fi
+
+    if ! command -v docker &> /dev/null; then
+        log_error "Docker 未安装或未加入 PATH，请先安装 Docker Desktop"
+        exit 1
+    fi
+
+    if docker compose version &> /dev/null; then
+        COMPOSE_COMMAND=(docker compose)
+        return
+    fi
+
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_COMMAND=(docker-compose)
+        return
+    fi
+
+    log_error "Docker Compose 不可用。Docker Desktop 新版本通常提供 'docker compose'；旧版本需要 'docker-compose'"
+    exit 1
+}
+
+run_compose() {
+    detect_compose
+    "${COMPOSE_COMMAND[@]}" "$@"
+}
+
 # 显示帮助信息
 show_help() {
     cat << EOF
 QA知识协作平台项目管理脚本
 
 用法: $0 <命令> [选项]
+
+PowerShell:
+  .\\scripts\\project-manager.ps1 <命令> [选项]
+
+Bash/WSL:
+  bash ./scripts/project-manager.sh <命令> [选项]
 
 命令:
   setup                 初始化项目环境
@@ -67,16 +104,8 @@ EOF
 # 检查Docker和Docker Compose
 check_dependencies() {
     log_info "检查依赖..."
-    
-    if ! command -v docker &> /dev/null; then
-        log_error "Docker 未安装，请先安装 Docker"
-        exit 1
-    fi
-    
-    if ! command -v docker-compose &> /dev/null; then
-        log_error "Docker Compose 未安装，请先安装 Docker Compose"
-        exit 1
-    fi
+
+    detect_compose
     
     log_success "依赖检查完成"
 }
@@ -100,7 +129,7 @@ setup_project() {
     
     # 构建Docker镜像
     log_info "构建Docker镜像..."
-    docker-compose -f docker-compose.dev.yml build
+    run_compose -f docker-compose.dev.yml build
     
     log_success "项目初始化完成"
 }
@@ -112,13 +141,13 @@ start_services() {
     
     case $env in
         dev)
-            docker-compose -f docker-compose.dev.yml up -d
+            run_compose -f docker-compose.dev.yml up -d
             ;;
         staging)
-            docker-compose -f docker-compose.staging.yml up -d
+            run_compose -f docker-compose.staging.yml up -d
             ;;
         prod)
-            docker-compose -f docker-compose.prod.yml up -d
+            run_compose -f docker-compose.prod.yml up -d
             ;;
         *)
             log_error "不支持的环境: $env"
@@ -139,13 +168,13 @@ stop_services() {
     
     case $env in
         dev)
-            docker-compose -f docker-compose.dev.yml down
+            run_compose -f docker-compose.dev.yml down
             ;;
         staging)
-            docker-compose -f docker-compose.staging.yml down
+            run_compose -f docker-compose.staging.yml down
             ;;
         prod)
-            docker-compose -f docker-compose.prod.yml down
+            run_compose -f docker-compose.prod.yml down
             ;;
         *)
             log_error "不支持的环境: $env"
@@ -172,13 +201,13 @@ show_status() {
     
     case $env in
         dev)
-            docker-compose -f docker-compose.dev.yml ps
+            run_compose -f docker-compose.dev.yml ps
             ;;
         staging)
-            docker-compose -f docker-compose.staging.yml ps
+            run_compose -f docker-compose.staging.yml ps
             ;;
         prod)
-            docker-compose -f docker-compose.prod.yml ps
+            run_compose -f docker-compose.prod.yml ps
             ;;
         *)
             log_error "不支持的环境: $env"
@@ -194,18 +223,18 @@ show_logs() {
     local follow=${3:-false}
     
     local compose_file="docker-compose.${env}.yml"
-    local cmd="docker-compose -f $compose_file logs"
+    local args=(-f "$compose_file" logs)
     
     if [ "$follow" = "true" ]; then
-        cmd="$cmd -f"
+        args+=(-f)
     fi
     
     if [ -n "$service" ]; then
-        cmd="$cmd $service"
+        args+=("$service")
     fi
     
-    log_info "查看日志: $cmd"
-    eval $cmd
+    log_info "查看日志: ${COMPOSE_COMMAND[*]:-docker compose} ${args[*]}"
+    run_compose "${args[@]}"
 }
 
 # 构建项目
@@ -215,13 +244,13 @@ build_project() {
     
     case $env in
         dev)
-            docker-compose -f docker-compose.dev.yml build
+            run_compose -f docker-compose.dev.yml build
             ;;
         staging)
-            docker-compose -f docker-compose.staging.yml build
+            run_compose -f docker-compose.staging.yml build
             ;;
         prod)
-            docker-compose -f docker-compose.prod.yml build
+            run_compose -f docker-compose.prod.yml build
             ;;
         *)
             log_error "不支持的环境: $env"
@@ -238,11 +267,11 @@ run_tests() {
     
     # 后端测试
     log_info "运行后端测试..."
-    docker-compose -f docker-compose.dev.yml exec backend poetry run pytest tests/ --cov=app
+    run_compose -f docker-compose.dev.yml exec backend poetry run pytest tests/ --cov=app
     
     # 前端测试
     log_info "运行前端测试..."
-    docker-compose -f docker-compose.dev.yml exec frontend pnpm test --run
+    run_compose -f docker-compose.dev.yml exec frontend pnpm test --run
     
     log_success "测试完成"
 }
@@ -252,7 +281,7 @@ clean_environment() {
     log_info "清理环境..."
     
     # 停止并删除容器
-    docker-compose -f docker-compose.dev.yml down -v --remove-orphans
+    run_compose -f docker-compose.dev.yml down -v --remove-orphans
     
     # 删除未使用的镜像
     docker image prune -f
@@ -268,13 +297,13 @@ init_database() {
     log_info "初始化数据库..."
     
     # 确保数据库服务运行
-    docker-compose -f docker-compose.dev.yml up -d db redis
+    run_compose -f docker-compose.dev.yml up -d db redis
     
     # 等待数据库启动
     sleep 5
     
     # 运行数据库初始化脚本
-    docker-compose -f docker-compose.dev.yml exec backend python scripts/init_db.py
+    run_compose -f docker-compose.dev.yml exec backend python scripts/init_db.py
     
     log_success "数据库初始化完成"
 }

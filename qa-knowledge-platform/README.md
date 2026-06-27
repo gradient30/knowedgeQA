@@ -13,19 +13,29 @@
 
 ### 一键启动
 
-```bash
+PowerShell:
+
+```powershell
 # 克隆项目
 git clone <repository-url>
 cd qa-knowledge-platform
 
 # 初始化项目环境
-./scripts/project-manager.sh setup
+.\scripts\project-manager.ps1 setup
 
 # 启动开发环境
-./scripts/project-manager.sh start
+.\scripts\project-manager.ps1 start
 
 # 初始化数据库
-./scripts/project-manager.sh init-db
+.\scripts\project-manager.ps1 init-db
+```
+
+Bash/WSL:
+
+```bash
+bash ./scripts/project-manager.sh setup
+bash ./scripts/project-manager.sh start
+bash ./scripts/project-manager.sh init-db
 ```
 
 ### 访问地址
@@ -103,21 +113,42 @@ qa-knowledge-platform/
 
 ### 本地开发
 
-```bash
+PowerShell:
+
+```powershell
 # 启动开发环境
-./scripts/project-manager.sh start --env dev
+.\scripts\project-manager.ps1 start -Env dev
 
 # 查看服务状态
-./scripts/project-manager.sh status
+.\scripts\project-manager.ps1 status
 
 # 查看日志
-./scripts/project-manager.sh logs --service backend --follow
+.\scripts\project-manager.ps1 logs -Service backend -Follow
 
 # 运行测试
-./scripts/project-manager.sh test
+.\scripts\project-manager.ps1 test
 
 # 停止服务
-./scripts/project-manager.sh stop
+.\scripts\project-manager.ps1 stop
+```
+
+Bash/WSL:
+
+```bash
+# 启动开发环境
+bash ./scripts/project-manager.sh start --env dev
+
+# 查看服务状态
+bash ./scripts/project-manager.sh status
+
+# 查看日志
+bash ./scripts/project-manager.sh logs --service backend --follow
+
+# 运行测试
+bash ./scripts/project-manager.sh test
+
+# 停止服务
+bash ./scripts/project-manager.sh stop
 ```
 
 ### 前端开发
@@ -181,8 +212,12 @@ poetry run python scripts/init_db.py
 
 ### 运行所有测试
 
+```powershell
+.\scripts\project-manager.ps1 test
+```
+
 ```bash
-./scripts/project-manager.sh test
+bash ./scripts/project-manager.sh test
 ```
 
 ### 单独运行测试
@@ -204,22 +239,36 @@ pnpm test:e2e
 
 ### 开发环境
 
+```powershell
+.\scripts\project-manager.ps1 start -Env dev
+```
+
 ```bash
-./scripts/project-manager.sh start --env dev
+bash ./scripts/project-manager.sh start --env dev
 ```
 
 ### 预发布环境
 
+```powershell
+.\scripts\project-manager.ps1 build -Env staging
+.\scripts\project-manager.ps1 start -Env staging
+```
+
 ```bash
-./scripts/project-manager.sh build --env staging
-./scripts/project-manager.sh start --env staging
+bash ./scripts/project-manager.sh build --env staging
+bash ./scripts/project-manager.sh start --env staging
 ```
 
 ### 生产环境
 
+```powershell
+.\scripts\project-manager.ps1 build -Env prod
+.\scripts\project-manager.ps1 start -Env prod
+```
+
 ```bash
-./scripts/project-manager.sh build --env prod
-./scripts/project-manager.sh start --env prod
+bash ./scripts/project-manager.sh build --env prod
+bash ./scripts/project-manager.sh start --env prod
 ```
 
 ## 🔧 配置说明
