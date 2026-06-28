@@ -121,6 +121,79 @@ async function verifyFileUpload(authHeaders) {
   return upload.file_info.id;
 }
 
+async function verifyNotificationAdminFlow(authHeaders) {
+  const settingsPayload = {
+    notifications: {
+      email_verification: true,
+      password_reset: true,
+      welcome_email: false,
+      article_comments: true,
+      team_invitations: true,
+      system_updates: true,
+    },
+  };
+
+  const updatedSettings = await readJson(
+    `${backendUrl}/api/v1/notifications/email-settings`,
+    {
+      ...writeJson('PUT', settingsPayload),
+      headers: {
+        ...authHeaders,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  assert.deepStrictEqual(
+    updatedSettings.settings.notifications,
+    settingsPayload.notifications,
+    'notification settings must persist admin changes'
+  );
+
+  const settings = await readJson(`${backendUrl}/api/v1/notifications/email-settings`, {
+    headers: authHeaders,
+  });
+  assert.deepStrictEqual(settings.notifications, settingsPayload.notifications);
+
+  const templates = await readJson(`${backendUrl}/api/v1/notifications/email-templates`, {
+    headers: authHeaders,
+  });
+  assert(
+    templates.templates.some((template) => template.id === 'notification'),
+    'notification template must be available'
+  );
+
+  const preview = await readJson(
+    `${backendUrl}/api/v1/notifications/preview-template`,
+    {
+      ...writeJson('POST', { template_name: 'notification' }),
+      headers: {
+        ...authHeaders,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  assert(
+    preview.html_content.includes('QA测试知识协作平台'),
+    'notification template preview must render HTML'
+  );
+
+  const testEmail = await readJson(`${backendUrl}/api/v1/notifications/test-email`, {
+    ...writeJson('POST', { to_email: 'qa-manager@example.com' }),
+    headers: {
+      ...authHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
+  assert.strictEqual(testEmail.success, true);
+
+  const logs = await readJson(`${backendUrl}/api/v1/notifications/email-logs`, {
+    headers: authHeaders,
+  });
+  assert.strictEqual(logs.logs[0].to_email, 'qa-manager@example.com');
+  assert.strictEqual(logs.logs[0].status, 'success');
+  console.log('notification admin flow: settings, templates, preview, test email, logs');
+}
+
 async function verifyKnowledgeWriteFlow(attachmentFileId) {
   const categories = await readJson(
     `${backendUrl}/api/v1/knowledge/categories?business_domain=saas`
@@ -416,6 +489,7 @@ async function main() {
   const authHeaders = await verifyAcceptanceLogin();
   await verifyApiData();
   const attachmentFileId = await verifyFileUpload(authHeaders);
+  await verifyNotificationAdminFlow(authHeaders);
   const articleId = await verifyKnowledgeWriteFlow(attachmentFileId);
   await verifyToolsWriteFlow();
   const newsAuditTarget = await verifyNewsWriteFlow();

@@ -25,6 +25,8 @@ const requiredMarkers = [
   'Placeholder API gate',
   'authenticated file upload/list evidence flow',
   'private file owner/admin access',
+  'notification admin settings/templates/preview/test-email/logs',
+  '20260628_notification_governance',
   'PUT /api/v1/users/{id}/status',
   'knowledge write flow',
   'create with evidence file',
