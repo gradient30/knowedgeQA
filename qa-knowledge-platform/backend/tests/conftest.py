@@ -2,18 +2,17 @@
 测试配置文件
 """
 import asyncio
+
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
-from httpx import ASGITransport
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.main import app
-from app.core.database import Base, get_async_session
 from app.core.config import settings
-
+from app.core.database import Base, get_async_session
+from app.main import app
 
 # 测试数据库URL
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -37,10 +36,10 @@ async def async_session():
     """创建测试数据库会话"""
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     async with TestingSessionLocal() as session:
         yield session
-    
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
@@ -48,16 +47,19 @@ async def async_session():
 @pytest_asyncio.fixture
 async def client(async_session: AsyncSession):
     """创建测试客户端"""
+
     def get_test_session():
         return async_session
-    
+
     app.dependency_overrides[get_async_session] = get_test_session
-    
+    app.state.testing = True
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
-    
+
     app.dependency_overrides.clear()
+    app.state.testing = False
 
 
 @pytest.fixture(scope="session")

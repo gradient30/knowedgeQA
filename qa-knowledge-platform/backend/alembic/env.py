@@ -1,8 +1,10 @@
 import asyncio
 from logging.config import fileConfig
+
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+
 from alembic import context
 
 # this is the Alembic Config object, which provides
@@ -17,11 +19,12 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 from app.core.database import Base
-from app.modules.users.models import User, Team
-from app.modules.knowledge.models import Article, Category, Tag, ArticleTag
-from app.modules.tools.models import Tool, ToolCategory, ToolRating
-from app.modules.news.models import NewsSource, NewsItem
+from app.modules.audit.models import AuditLog
 from app.modules.files.models import UploadedFile
+from app.modules.knowledge.models import Article, ArticleTag, Category, Tag
+from app.modules.news.models import NewsItem, NewsSource
+from app.modules.tools.models import Tool, ToolCategory, ToolRating
+from app.modules.users.models import Team, User
 
 target_metadata = Base.metadata
 

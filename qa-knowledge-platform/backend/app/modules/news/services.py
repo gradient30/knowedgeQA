@@ -7,12 +7,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.news.models import (
-    BusinessDomain,
-    NewsItem,
-    NewsSource,
-    ReviewStatus,
-)
+from app.modules.audit.services import add_audit_log
+from app.modules.news.models import BusinessDomain, NewsItem, NewsSource, ReviewStatus
 from app.modules.news.schemas import (
     NewsItemResponse,
     NewsSourceCreate,
@@ -33,7 +29,9 @@ class NewsService:
     ):
         stmt = select(NewsItem)
         if business_domain:
-            stmt = stmt.where(NewsItem.business_domain == BusinessDomain(business_domain))
+            stmt = stmt.where(
+                NewsItem.business_domain == BusinessDomain(business_domain)
+            )
         if review_status:
             stmt = stmt.where(NewsItem.review_status == ReviewStatus(review_status))
         if q:
@@ -51,6 +49,15 @@ class NewsService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="资讯不存在")
         item.review_status = ReviewStatus.APPROVED
         item.published_at = datetime.now(timezone.utc)
+        add_audit_log(
+            self.session,
+            action="review",
+            resource_type="news_item",
+            resource_id=item.id,
+            business_domain=item.business_domain.value,
+            summary=item.title,
+            metadata={"review_status": item.review_status.value},
+        )
         await self.session.commit()
         await self.session.refresh(item)
         return self._item_to_response(item)
@@ -60,6 +67,15 @@ class NewsService:
         if item is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="资讯不存在")
         item.review_status = ReviewStatus.REJECTED
+        add_audit_log(
+            self.session,
+            action="review",
+            resource_type="news_item",
+            resource_id=item.id,
+            business_domain=item.business_domain.value,
+            summary=item.title,
+            metadata={"review_status": item.review_status.value},
+        )
         await self.session.commit()
         await self.session.refresh(item)
         return self._item_to_response(item)
@@ -67,16 +83,27 @@ class NewsService:
     async def list_sources(self, business_domain: Optional[str] = None):
         stmt = select(NewsSource)
         if business_domain:
-            stmt = stmt.where(NewsSource.business_domain == BusinessDomain(business_domain))
+            stmt = stmt.where(
+                NewsSource.business_domain == BusinessDomain(business_domain)
+            )
         result = await self.session.execute(stmt.order_by(NewsSource.name.asc()))
         return [
-            NewsSourceResponse.model_validate(source)
-            for source in result.scalars()
+            NewsSourceResponse.model_validate(source) for source in result.scalars()
         ]
 
     async def create_source(self, payload: NewsSourceCreate):
         source = NewsSource(**payload.model_dump())
         self.session.add(source)
+        await self.session.flush()
+        add_audit_log(
+            self.session,
+            action="create",
+            resource_type="news_source",
+            resource_id=source.id,
+            business_domain=source.business_domain.value,
+            summary=source.name,
+            metadata={"url": source.url, "is_active": source.is_active},
+        )
         await self.session.commit()
         await self.session.refresh(source)
         return NewsSourceResponse.model_validate(source)
@@ -85,8 +112,21 @@ class NewsService:
         source = await self.session.get(NewsSource, source_id)
         if source is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="资讯源不存在")
-        for key, value in payload.model_dump(exclude_unset=True).items():
+        updates = payload.model_dump(exclude_unset=True)
+        for key, value in updates.items():
             setattr(source, key, value)
+        add_audit_log(
+            self.session,
+            action="update",
+            resource_type="news_source",
+            resource_id=source.id,
+            business_domain=source.business_domain.value,
+            summary=source.name,
+            metadata={
+                "changed_fields": sorted(updates.keys()),
+                "is_active": source.is_active,
+            },
+        )
         await self.session.commit()
         await self.session.refresh(source)
         return NewsSourceResponse.model_validate(source)
@@ -95,6 +135,15 @@ class NewsService:
         source = await self.session.get(NewsSource, source_id)
         if source is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="资讯源不存在")
+        add_audit_log(
+            self.session,
+            action="delete",
+            resource_type="news_source",
+            resource_id=source.id,
+            business_domain=source.business_domain.value,
+            summary=source.name,
+            metadata={"url": source.url, "is_active": source.is_active},
+        )
         await self.session.delete(source)
         await self.session.commit()
         return True

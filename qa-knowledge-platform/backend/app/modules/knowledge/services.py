@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.audit.services import add_audit_log
 from app.modules.knowledge.models import (
     Article,
     BusinessDomain,
@@ -67,6 +68,21 @@ class KnowledgeService:
             },
         )
         self.session.add(article)
+        await self.session.flush()
+        add_audit_log(
+            self.session,
+            action="create",
+            resource_type="knowledge_article",
+            resource_id=article.id,
+            actor_id=payload.user_id,
+            business_domain=article.business_domain.value,
+            summary=article.title,
+            metadata={
+                "title": article.title,
+                "visibility": article.visibility.value,
+                "review_status": article.review_status.value,
+            },
+        )
         await self.session.commit()
         await self.session.refresh(article)
         return self._article_to_response(article)
@@ -87,6 +103,7 @@ class KnowledgeService:
         updates = payload.model_dump(exclude_unset=True)
         tags = updates.pop("tags", None)
         attachment_file_ids = updates.pop("attachment_file_ids", None)
+        action = "review" if "review_status" in updates else "update"
         for key, value in updates.items():
             setattr(article, key, value)
         if tags is not None or attachment_file_ids is not None:
@@ -99,6 +116,28 @@ class KnowledgeService:
                 ]
             article.extra_data = extra_data
 
+        add_audit_log(
+            self.session,
+            action=action,
+            resource_type="knowledge_article",
+            resource_id=article.id,
+            actor_id=article.user_id,
+            business_domain=article.business_domain.value,
+            summary=article.title,
+            metadata={
+                "changed_fields": sorted(
+                    list(updates.keys())
+                    + (["tags"] if tags is not None else [])
+                    + (
+                        ["attachment_file_ids"]
+                        if attachment_file_ids is not None
+                        else []
+                    )
+                ),
+                "review_status": article.review_status.value,
+                "visibility": article.visibility.value,
+            },
+        )
         await self.session.commit()
         await self.session.refresh(article)
         return self._article_to_response(article)
@@ -107,6 +146,19 @@ class KnowledgeService:
         article = await self.session.get(Article, article_id)
         if article is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="文章不存在")
+        add_audit_log(
+            self.session,
+            action="delete",
+            resource_type="knowledge_article",
+            resource_id=article.id,
+            actor_id=article.user_id,
+            business_domain=article.business_domain.value,
+            summary=article.title,
+            metadata={
+                "review_status": article.review_status.value,
+                "visibility": article.visibility.value,
+            },
+        )
         await self.session.delete(article)
         await self.session.commit()
         return True
@@ -184,16 +236,22 @@ class KnowledgeService:
     ) -> KnowledgeMetricsResponse:
         stmt = select(Article)
         if business_domain:
-            stmt = stmt.where(Article.business_domain == BusinessDomain(business_domain))
+            stmt = stmt.where(
+                Article.business_domain == BusinessDomain(business_domain)
+            )
         articles = (await self.session.execute(stmt)).scalars().all()
         return KnowledgeMetricsResponse(
             business_domain=business_domain,
             article_count=len(articles),
             approved_article_count=sum(
-                1 for article in articles if article.review_status == ReviewStatus.APPROVED
+                1
+                for article in articles
+                if article.review_status == ReviewStatus.APPROVED
             ),
             pending_article_count=sum(
-                1 for article in articles if article.review_status == ReviewStatus.PENDING
+                1
+                for article in articles
+                if article.review_status == ReviewStatus.PENDING
             ),
             comment_count=sum(article.comment_count or 0 for article in articles),
             like_count=sum(article.like_count or 0 for article in articles),
@@ -212,7 +270,11 @@ class KnowledgeService:
         project_key: Optional[str] = None,
     ) -> List[ArticleResponse]:
         stmt = select(Article).where(
-            or_(Article.title.contains(q), Article.summary.contains(q), Article.content.contains(q))
+            or_(
+                Article.title.contains(q),
+                Article.summary.contains(q),
+                Article.content.contains(q),
+            )
         )
         stmt = self._apply_article_filters(
             stmt, business_domain, review_status, visibility, project_key
@@ -225,10 +287,14 @@ class KnowledgeService:
     ) -> List[CategoryResponse]:
         stmt = select(Category)
         if business_domain:
-            stmt = stmt.where(Category.business_domain == BusinessDomain(business_domain))
+            stmt = stmt.where(
+                Category.business_domain == BusinessDomain(business_domain)
+            )
         stmt = stmt.order_by(Category.sort_order.asc(), Category.name.asc())
         result = await self.session.execute(stmt)
-        return [CategoryResponse.model_validate(category) for category in result.scalars()]
+        return [
+            CategoryResponse.model_validate(category) for category in result.scalars()
+        ]
 
     def _apply_article_filters(
         self,
@@ -239,14 +305,18 @@ class KnowledgeService:
         project_key: Optional[str],
     ):
         if business_domain:
-            stmt = stmt.where(Article.business_domain == BusinessDomain(business_domain))
+            stmt = stmt.where(
+                Article.business_domain == BusinessDomain(business_domain)
+            )
         if review_status:
             stmt = stmt.where(Article.review_status == ReviewStatus(review_status))
         if visibility:
             stmt = stmt.where(Article.visibility == Visibility(visibility))
         if project_key:
             stmt = stmt.where(Article.project_key == project_key)
-        return stmt.order_by(Article.updated_at.desc().nullslast(), Article.created_at.desc())
+        return stmt.order_by(
+            Article.updated_at.desc().nullslast(), Article.created_at.desc()
+        )
 
     async def _get_article_model(self, article_id: UUID) -> Article:
         article = await self.session.get(Article, article_id)

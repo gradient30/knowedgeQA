@@ -24,6 +24,7 @@ const requiredMarkers = [
   'knowledge write flow',
   'create with evidence file',
   'comment, like, favorite, metrics',
+  'audit flow',
   'intelligence flow',
   'source-backed news summary',
   'output/acceptance/ui-knowledge.png',

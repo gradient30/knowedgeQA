@@ -194,6 +194,7 @@ async function verifyKnowledgeWriteFlow(attachmentFileId) {
     method: 'DELETE',
   });
   console.log('knowledge write flow: create with evidence file, approve, comment, like, favorite, metrics, update, search, delete');
+  return article.id;
 }
 
 async function verifyToolsWriteFlow() {
@@ -275,6 +276,45 @@ async function verifyNewsWriteFlow() {
   );
   assert.strictEqual(rejected.review_status, 'rejected');
   console.log('news write flow: source create, update, delete, publish, reject');
+  return {
+    sourceId: source.id,
+    itemId: newsItems[0].id,
+  };
+}
+
+async function verifyAuditFlow(articleId, newsAuditTarget) {
+  const knowledgeLogs = await readJson(
+    `${backendUrl}/api/v1/audit/logs?resource_type=knowledge_article&resource_id=${articleId}&business_domain=saas`
+  );
+  assert.deepStrictEqual(
+    knowledgeLogs.map((log) => log.action),
+    ['delete', 'review', 'create'],
+    'knowledge audit logs must record create, review, and delete'
+  );
+  assert.strictEqual(
+    knowledgeLogs[1].metadata.review_status,
+    'approved',
+    'knowledge review audit must include approved status'
+  );
+
+  const sourceLogs = await readJson(
+    `${backendUrl}/api/v1/audit/logs?resource_type=news_source&resource_id=${newsAuditTarget.sourceId}&business_domain=game`
+  );
+  assert.deepStrictEqual(
+    sourceLogs.map((log) => log.action),
+    ['delete', 'update', 'create'],
+    'news source audit logs must record create, update, and delete'
+  );
+
+  const reviewLogs = await readJson(
+    `${backendUrl}/api/v1/audit/logs?resource_type=news_item&resource_id=${newsAuditTarget.itemId}&action=review&limit=2`
+  );
+  assert.deepStrictEqual(
+    reviewLogs.map((log) => log.metadata.review_status),
+    ['rejected', 'approved'],
+    'news item audit logs must record publish and reject decisions'
+  );
+  console.log('audit flow: knowledge lifecycle, news review, and source configuration changes');
 }
 
 async function verifyIntelligenceFlow() {
@@ -358,9 +398,10 @@ async function main() {
   await verifyHealth();
   await verifyApiData();
   const attachmentFileId = await verifyFileUpload();
-  await verifyKnowledgeWriteFlow(attachmentFileId);
+  const articleId = await verifyKnowledgeWriteFlow(attachmentFileId);
   await verifyToolsWriteFlow();
-  await verifyNewsWriteFlow();
+  const newsAuditTarget = await verifyNewsWriteFlow();
+  await verifyAuditFlow(articleId, newsAuditTarget);
   await verifyIntelligenceFlow();
   await verifyFrontendRoutes();
   console.log('Runtime Docker acceptance passed.');

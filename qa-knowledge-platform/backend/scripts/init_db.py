@@ -5,47 +5,34 @@
 """
 
 import asyncio
-import sys
 import os
+import sys
 from pathlib import Path
 
 # 添加项目根目录到Python路径
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import engine, AsyncSessionLocal, Base
-from app.core.config import settings
-from app.modules.users.models import User, Team, UserRole
-from app.modules.knowledge.models import (
-    Article,
-    ArticleStatus,
-    BusinessDomain as KnowledgeBusinessDomain,
-    Category,
-    CategoryType,
-    ArticleType,
-    ReviewStatus as KnowledgeReviewStatus,
-    Tag,
-    TagCategory,
-    Visibility,
-)
-from app.modules.tools.models import (
-    BusinessDomain as ToolBusinessDomain,
-    Tool,
-    ToolCategory,
-    ToolCategoryType,
-)
-from app.modules.news.models import (
-    BusinessDomain as NewsBusinessDomain,
-    NewsCategory,
-    NewsItem,
-    ReviewStatus as NewsReviewStatus,
-    NewsSource,
-)
 import uuid
 from datetime import datetime
+
 import bcrypt
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.core.database import AsyncSessionLocal, Base, engine
+from app.modules.knowledge.models import Article, ArticleStatus, ArticleType
+from app.modules.knowledge.models import BusinessDomain as KnowledgeBusinessDomain
+from app.modules.knowledge.models import Category, CategoryType
+from app.modules.knowledge.models import ReviewStatus as KnowledgeReviewStatus
+from app.modules.knowledge.models import Tag, TagCategory, Visibility
+from app.modules.news.models import BusinessDomain as NewsBusinessDomain
+from app.modules.news.models import NewsCategory, NewsItem, NewsSource
+from app.modules.news.models import ReviewStatus as NewsReviewStatus
+from app.modules.tools.models import BusinessDomain as ToolBusinessDomain
+from app.modules.tools.models import Tool, ToolCategory, ToolCategoryType
+from app.modules.users.models import Team, User, UserRole
 
 
 def get_initial_categories_data():
@@ -210,12 +197,13 @@ async def create_tables():
     print("正在创建数据库表...")
     async with engine.begin() as conn:
         # 导入所有模型以确保表被创建
-        from app.modules.users.models import User, Team
-        from app.modules.knowledge.models import Article, Category, Tag, ArticleTag
-        from app.modules.tools.models import Tool, ToolCategory, ToolRating
-        from app.modules.news.models import NewsSource, NewsItem
+        from app.modules.audit.models import AuditLog
         from app.modules.files.models import UploadedFile
-        
+        from app.modules.knowledge.models import Article, ArticleTag, Category, Tag
+        from app.modules.news.models import NewsItem, NewsSource
+        from app.modules.tools.models import Tool, ToolCategory, ToolRating
+        from app.modules.users.models import Team, User
+
         await conn.run_sync(Base.metadata.create_all)
     print("✅ 数据库表创建完成")
 
@@ -262,12 +250,14 @@ async def create_initial_data():
                 settings={
                     "default_article_visibility": "team",
                     "allow_external_sharing": True,
-                    "require_article_approval": False
+                    "require_article_approval": False,
                 },
             )
             created_counts["teams"] += int(created)
 
-            password_hash = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            password_hash = bcrypt.hashpw(
+                "admin123".encode("utf-8"), bcrypt.gensalt()
+            ).decode("utf-8")
             admin_user, created = await add_if_missing(
                 session,
                 User,
@@ -283,14 +273,16 @@ async def create_initial_data():
                 skills={
                     "测试类型": ["功能测试", "性能测试", "自动化测试"],
                     "工具经验": ["Selenium", "JMeter", "Postman"],
-                    "编程语言": ["Python", "Java", "JavaScript"]
+                    "编程语言": ["Python", "Java", "JavaScript"],
                 },
                 is_active=True,
                 is_verified=True,
             )
             created_counts["users"] += int(created)
 
-            test_password_hash = bcrypt.hashpw("Password123!".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            test_password_hash = bcrypt.hashpw(
+                "Password123!".encode("utf-8"), bcrypt.gensalt()
+            ).decode("utf-8")
             _, created = await add_if_missing(
                 session,
                 User,
@@ -337,12 +329,20 @@ async def create_initial_data():
                 {"name": "JMeter", "category": TagCategory.TECH, "color": "#52c41a"},
                 {"name": "Postman", "category": TagCategory.TECH, "color": "#fa8c16"},
                 {"name": "Cypress", "category": TagCategory.TECH, "color": "#722ed1"},
-                {"name": "Playwright", "category": TagCategory.TECH, "color": "#eb2f96"},
+                {
+                    "name": "Playwright",
+                    "category": TagCategory.TECH,
+                    "color": "#eb2f96",
+                },
                 {"name": "API测试", "category": TagCategory.TOOL, "color": "#13c2c2"},
                 {"name": "UI测试", "category": TagCategory.TOOL, "color": "#faad14"},
                 {"name": "数据库测试", "category": TagCategory.TOOL, "color": "#a0d911"},
                 {"name": "Web", "category": TagCategory.PLATFORM, "color": "#1890ff"},
-                {"name": "Android", "category": TagCategory.PLATFORM, "color": "#52c41a"},
+                {
+                    "name": "Android",
+                    "category": TagCategory.PLATFORM,
+                    "color": "#52c41a",
+                },
                 {"name": "iOS", "category": TagCategory.PLATFORM, "color": "#faad14"},
                 {"name": "微信小程序", "category": TagCategory.PLATFORM, "color": "#722ed1"},
                 {"name": "初级", "category": TagCategory.DIFFICULTY, "color": "#52c41a"},
@@ -549,7 +549,7 @@ async def create_initial_data():
             print(f"   - 默认团队: {default_team.name}")
             print(f"   - 管理员用户: {admin_user.username} (密码: admin123)")
             print(f"   - 本次新增: {created_counts}")
-            
+
         except Exception as e:
             await session.rollback()
             print(f"❌ 创建初始数据失败: {e}")
@@ -560,6 +560,7 @@ async def check_database_connection():
     """检查数据库连接"""
     try:
         from sqlalchemy import text
+
         async with engine.begin() as conn:
             result = await conn.execute(text("SELECT 1"))
             result.fetchone()
@@ -574,19 +575,19 @@ async def main():
     """主函数"""
     print("🚀 开始初始化QA测试知识协作平台数据库...")
     print(f"数据库URL: {settings.DATABASE_URL}")
-    
+
     # 检查数据库连接
     if not await check_database_connection():
         print("请确保数据库服务正在运行并且连接配置正确")
         return
-    
+
     try:
         # 创建表
         await create_tables()
-        
+
         # 创建初始数据
         await create_initial_data()
-        
+
         print("\n🎉 数据库初始化完成！")
         print("\n📋 登录信息:")
         print("   用户名: admin")
@@ -596,7 +597,7 @@ async def main():
         print("   1. 启动后端服务: uvicorn app.main:app --reload")
         print("   2. 访问API文档: http://localhost:8000/docs")
         print("   3. 启动前端服务并开始使用平台")
-        
+
     except Exception as e:
         print(f"\n❌ 数据库初始化失败: {e}")
         sys.exit(1)

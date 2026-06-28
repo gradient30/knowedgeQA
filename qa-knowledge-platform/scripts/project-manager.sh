@@ -385,6 +385,9 @@ run_tests() {
     log_info "运行前端 lint..."
     run_compose -f docker-compose.dev.yml exec frontend pnpm lint
 
+    log_info "同步 dev 数据库结构..."
+    run_compose -f docker-compose.dev.yml exec backend python scripts/init_db.py
+
     log_info "运行SaaS/Game运行态验收..."
     run_node scripts/verify-runtime-acceptance.js
 

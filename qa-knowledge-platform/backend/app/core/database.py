@@ -1,5 +1,6 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
+
 from app.core.config import settings
 
 # 创建异步数据库引擎
@@ -19,6 +20,7 @@ AsyncSessionLocal = async_sessionmaker(
 
 class Base(DeclarativeBase):
     """数据库模型基类"""
+
     pass
 
 
@@ -35,10 +37,11 @@ async def create_tables():
     """创建数据库表"""
     async with engine.begin() as conn:
         # 导入所有模型以确保表被创建
-        from app.modules.users.models import User, Team
-        from app.modules.knowledge.models import Article, Category, Tag, ArticleTag
-        from app.modules.tools.models import Tool, ToolCategory, ToolRating
-        from app.modules.news.models import NewsSource, NewsItem
+        from app.modules.audit.models import AuditLog
         from app.modules.files.models import UploadedFile
-        
+        from app.modules.knowledge.models import Article, ArticleTag, Category, Tag
+        from app.modules.news.models import NewsItem, NewsSource
+        from app.modules.tools.models import Tool, ToolCategory, ToolRating
+        from app.modules.users.models import Team, User
+
         await conn.run_sync(Base.metadata.create_all)

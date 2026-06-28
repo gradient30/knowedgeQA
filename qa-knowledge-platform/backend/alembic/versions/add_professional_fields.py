@@ -1,1 +1,72 @@
-\"\"\"Add professional role and experience fields\n\nRevision ID: add_professional_fields\nRevises: \nCreate Date: 2024-12-31 12:00:00.000000\n\n\"\"\"\nfrom alembic import op\nimport sqlalchemy as sa\nfrom sqlalchemy.dialects import postgresql\n\n# revision identifiers, used by Alembic.\nrevision = 'add_professional_fields'\ndown_revision = None\nbranch_labels = None\ndepends_on = None\n\n\ndef upgrade() -> None:\n    # Create enum types\n    professional_role_enum = postgresql.ENUM(\n        'test_engineer', 'senior_test_engineer', 'test_lead', 'test_manager',\n        'qa_engineer', 'automation_engineer', 'performance_engineer', 'security_tester',\n        'game_tester', 'mobile_tester', 'test_architect', 'qa_director',\n        'developer', 'product_manager', 'student', 'other',\n        name='professionalrole'\n    )\n    professional_role_enum.create(op.get_bind())\n    \n    experience_level_enum = postgresql.ENUM(\n        '0-1', '1-3', '3-5', '5-8', '8+',\n        name='experiencelevel'\n    )\n    experience_level_enum.create(op.get_bind())\n    \n    # Add new columns to users table\n    op.add_column('users', sa.Column('professional_role', professional_role_enum, default='test_engineer'))\n    op.add_column('users', sa.Column('experience_level', experience_level_enum, default='1-3'))\n    op.add_column('users', sa.Column('specialties', postgresql.JSON(), nullable=True))\n\n\ndef downgrade() -> None:\n    # Remove columns\n    op.drop_column('users', 'specialties')\n    op.drop_column('users', 'experience_level')\n    op.drop_column('users', 'professional_role')\n    \n    # Drop enum types\n    op.execute('DROP TYPE IF EXISTS experiencelevel')\n    op.execute('DROP TYPE IF EXISTS professionalrole')\n"
+"""Add professional role and experience fields.
+
+Revision ID: add_professional_fields
+Revises:
+Create Date: 2024-12-31 12:00:00.000000
+"""
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+
+
+# revision identifiers, used by Alembic.
+revision = "add_professional_fields"
+down_revision = None
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    professional_role_enum = postgresql.ENUM(
+        "test_engineer",
+        "senior_test_engineer",
+        "test_lead",
+        "test_manager",
+        "qa_engineer",
+        "automation_engineer",
+        "performance_engineer",
+        "security_tester",
+        "game_tester",
+        "mobile_tester",
+        "test_architect",
+        "qa_director",
+        "developer",
+        "product_manager",
+        "student",
+        "other",
+        name="professionalrole",
+    )
+    professional_role_enum.create(op.get_bind(), checkfirst=True)
+
+    experience_level_enum = postgresql.ENUM(
+        "0-1",
+        "1-3",
+        "3-5",
+        "5-8",
+        "8+",
+        name="experiencelevel",
+    )
+    experience_level_enum.create(op.get_bind(), checkfirst=True)
+
+    op.add_column(
+        "users",
+        sa.Column(
+            "professional_role",
+            professional_role_enum,
+            server_default="test_engineer",
+        ),
+    )
+    op.add_column(
+        "users",
+        sa.Column("experience_level", experience_level_enum, server_default="1-3"),
+    )
+    op.add_column("users", sa.Column("specialties", postgresql.JSON(), nullable=True))
+
+
+def downgrade() -> None:
+    op.drop_column("users", "specialties")
+    op.drop_column("users", "experience_level")
+    op.drop_column("users", "professional_role")
+    op.execute("DROP TYPE IF EXISTS experiencelevel")
+    op.execute("DROP TYPE IF EXISTS professionalrole")
