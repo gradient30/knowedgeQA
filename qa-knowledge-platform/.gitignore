@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+frontend/.pnpm-store/
 __pycache__/
 *.py[cod]
 *$py.class
