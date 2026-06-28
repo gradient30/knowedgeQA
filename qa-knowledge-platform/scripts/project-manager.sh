@@ -31,20 +31,52 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+DOCKER_COMMAND=()
 COMPOSE_COMMAND=()
+
+detect_docker() {
+    if [ ${#DOCKER_COMMAND[@]} -gt 0 ]; then
+        return
+    fi
+
+    if command -v docker &> /dev/null; then
+        DOCKER_COMMAND=(docker)
+        return
+    fi
+
+    local windows_user="${WINUSER:-${USER:-}}"
+    local docker_candidates=(
+        "/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"
+        "/mnt/c/Users/${windows_user}/AppData/Local/Programs/DockerDesktop/resources/bin/docker.exe"
+    )
+
+    for candidate in "${docker_candidates[@]}"; do
+        if [ -x "$candidate" ]; then
+            local docker_bin
+            docker_bin="$(dirname "$candidate")"
+            case ":$PATH:" in
+                *":$docker_bin:"*) ;;
+                *) export PATH="$docker_bin:$PATH" ;;
+            esac
+            DOCKER_COMMAND=("$candidate")
+            log_warning "Docker 未加入 WSL PATH，改用: $candidate"
+            return
+        fi
+    done
+
+    log_error "Docker 未安装或未加入 PATH，请先安装 Docker Desktop"
+    exit 1
+}
 
 detect_compose() {
     if [ ${#COMPOSE_COMMAND[@]} -gt 0 ]; then
         return
     fi
 
-    if ! command -v docker &> /dev/null; then
-        log_error "Docker 未安装或未加入 PATH，请先安装 Docker Desktop"
-        exit 1
-    fi
+    detect_docker
 
-    if docker compose version &> /dev/null; then
-        COMPOSE_COMMAND=(docker compose)
+    if "${DOCKER_COMMAND[@]}" compose version &> /dev/null; then
+        COMPOSE_COMMAND=("${DOCKER_COMMAND[@]}" compose)
         return
     fi
 
@@ -60,6 +92,11 @@ detect_compose() {
 run_compose() {
     detect_compose
     "${COMPOSE_COMMAND[@]}" "$@"
+}
+
+run_docker() {
+    detect_docker
+    "${DOCKER_COMMAND[@]}" "$@"
 }
 
 # 显示帮助信息
@@ -154,6 +191,12 @@ start_services() {
             exit 1
             ;;
     esac
+
+    if [ "$env" = "dev" ]; then
+        log_info "初始化 dev 数据库基线数据..."
+        sleep 8
+        run_compose -f docker-compose.dev.yml exec backend python scripts/init_db.py
+    fi
     
     log_success "服务启动完成"
     log_info "前端地址: http://localhost:3000"
@@ -269,9 +312,12 @@ run_tests() {
     log_info "运行后端测试..."
     run_compose -f docker-compose.dev.yml exec backend poetry run pytest tests/ --cov=app
     
-    # 前端测试
-    log_info "运行前端测试..."
-    run_compose -f docker-compose.dev.yml exec frontend pnpm test --run
+    # 前端静态验证
+    log_info "运行前端类型检查..."
+    run_compose -f docker-compose.dev.yml exec frontend pnpm type-check
+
+    log_info "运行前端 lint..."
+    run_compose -f docker-compose.dev.yml exec frontend pnpm lint
     
     log_success "测试完成"
 }
@@ -284,10 +330,10 @@ clean_environment() {
     run_compose -f docker-compose.dev.yml down -v --remove-orphans
     
     # 删除未使用的镜像
-    docker image prune -f
-    
+    run_docker image prune -f
+
     # 删除未使用的卷
-    docker volume prune -f
+    run_docker volume prune -f
     
     log_success "环境清理完成"
 }
@@ -297,7 +343,7 @@ init_database() {
     log_info "初始化数据库..."
     
     # 确保数据库服务运行
-    run_compose -f docker-compose.dev.yml up -d db redis
+    run_compose -f docker-compose.dev.yml up -d db redis backend
     
     # 等待数据库启动
     sleep 5

@@ -14,6 +14,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $ProjectRoot
+$script:DockerCommand = $null
 
 function Write-Info {
     param([string]$Message)
@@ -83,20 +84,67 @@ function Get-ComposeFile {
     return $composeFile
 }
 
+function Resolve-DockerCommand {
+    if ($script:DockerCommand) {
+        return $script:DockerCommand
+    }
+
+    $pathCommand = Get-Command docker -ErrorAction SilentlyContinue
+    if ($pathCommand) {
+        $script:DockerCommand = $pathCommand.Source
+        return $script:DockerCommand
+    }
+
+    $candidatePaths = @(
+        (Join-Path $env:ProgramFiles 'Docker\Docker\resources\bin\docker.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\resources\bin\docker.exe')
+    )
+
+    foreach ($candidate in $candidatePaths) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+            $script:DockerCommand = $candidate
+            $dockerBin = Split-Path -Parent $candidate
+            if (($env:PATH -split ';') -notcontains $dockerBin) {
+                $env:PATH = "$dockerBin;$env:PATH"
+            }
+            Write-WarningMessage "Docker 未加入 PATH，改用: $candidate"
+            return $script:DockerCommand
+        }
+    }
+
+    return $null
+}
+
+function Invoke-Docker {
+    param([string[]]$DockerArgs)
+
+    $docker = Resolve-DockerCommand
+    if (-not $docker) {
+        Write-ErrorMessage 'Docker 未安装或未加入 PATH。请安装 Docker Desktop，或安装后重新打开 PowerShell。'
+        exit 1
+    }
+
+    & $docker @DockerArgs
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+}
+
 function Invoke-Compose {
     param(
         [string]$ComposeFile,
         [string[]]$ComposeArgs
     )
 
-    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    $docker = Resolve-DockerCommand
+    if (-not $docker) {
         Write-ErrorMessage 'Docker 未安装或未加入 PATH。请安装 Docker Desktop，或安装后重新打开 PowerShell。'
         exit 1
     }
 
-    & docker compose version *> $null
+    & $docker compose version *> $null
     if ($LASTEXITCODE -eq 0) {
-        & docker compose -f $ComposeFile @ComposeArgs
+        & $docker compose -f $ComposeFile @ComposeArgs
         if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
         }
@@ -118,12 +166,13 @@ function Invoke-Compose {
 function Test-Dependencies {
     Write-Info '检查依赖...'
 
-    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    $docker = Resolve-DockerCommand
+    if (-not $docker) {
         Write-ErrorMessage 'Docker 未安装或未加入 PATH。请先安装 Docker Desktop。'
         exit 1
     }
 
-    & docker compose version *> $null
+    & $docker compose version *> $null
     if ($LASTEXITCODE -eq 0) {
         Write-Success '依赖检查完成'
         return
@@ -157,6 +206,11 @@ function Setup-Project {
 function Start-Services {
     Write-Info "启动 $Env 环境服务..."
     Invoke-Compose -ComposeFile (Get-ComposeFile $Env) -ComposeArgs @('up', '-d')
+    if ($Env -eq 'dev') {
+        Write-Info '初始化 dev 数据库基线数据...'
+        Start-Sleep -Seconds 8
+        Invoke-Compose -ComposeFile (Get-ComposeFile $Env) -ComposeArgs @('exec', 'backend', 'python', 'scripts/init_db.py')
+    }
     Write-Success '服务启动完成'
     Write-Info '前端地址: http://localhost:3000'
     Write-Info '后端API: http://localhost:8000'
@@ -196,22 +250,25 @@ function Run-Tests {
     Write-Info '运行后端测试...'
     Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('exec', 'backend', 'poetry', 'run', 'pytest', 'tests/', '--cov=app')
 
-    Write-Info '运行前端测试...'
-    Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('exec', 'frontend', 'pnpm', 'test', '--run')
+    Write-Info '运行前端类型检查...'
+    Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('exec', 'frontend', 'pnpm', 'type-check')
+
+    Write-Info '运行前端 lint...'
+    Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('exec', 'frontend', 'pnpm', 'lint')
     Write-Success '测试完成'
 }
 
 function Clean-Environment {
     Write-Info '清理环境...'
     Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('down', '-v', '--remove-orphans')
-    & docker image prune -f
-    & docker volume prune -f
+    Invoke-Docker -DockerArgs @('image', 'prune', '-f')
+    Invoke-Docker -DockerArgs @('volume', 'prune', '-f')
     Write-Success '环境清理完成'
 }
 
 function Initialize-Database {
     Write-Info '初始化数据库...'
-    Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('up', '-d', 'db', 'redis')
+    Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('up', '-d', 'db', 'redis', 'backend')
     Start-Sleep -Seconds 5
     Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('exec', 'backend', 'python', 'scripts/init_db.py')
     Write-Success '数据库初始化完成'
