@@ -84,6 +84,11 @@ async function waitForVisibleText(page, text) {
   }
 }
 
+function isBenignDevRequestFailure(request) {
+  const failureText = request.failure()?.errorText || '';
+  return request.url().includes('.hot-update.') && failureText.includes('ERR_ABORTED');
+}
+
 async function main() {
   fs.mkdirSync(outputDir, { recursive: true });
 
@@ -99,6 +104,9 @@ async function main() {
     }
   });
   page.on('requestfailed', (request) => {
+    if (isBenignDevRequestFailure(request)) {
+      return;
+    }
     browserErrors.push(`${request.method()} ${request.url()} ${request.failure()?.errorText}`);
   });
 

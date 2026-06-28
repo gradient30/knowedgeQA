@@ -67,6 +67,20 @@ async function verifyHealth() {
   console.log('backend health: healthy');
 }
 
+async function verifyAcceptanceLogin() {
+  const login = await readJson(
+    `${backendUrl}/api/v1/auth/login`,
+    writeJson('POST', {
+      email: 'admin@qa-platform.com',
+      password: 'admin123',
+    })
+  );
+  assert(login.access_token, 'runtime acceptance requires an admin access token');
+  return {
+    Authorization: `Bearer ${login.access_token}`,
+  };
+}
+
 async function verifyApiData() {
   for (const [path, minimum] of apiChecks) {
     const payload = await readJson(`${backendUrl}${path}`);
@@ -79,7 +93,7 @@ async function verifyApiData() {
   }
 }
 
-async function verifyFileUpload() {
+async function verifyFileUpload(authHeaders) {
   const form = new FormData();
   const content = `runtime acceptance ${new Date().toISOString()}\n`;
   form.append(
@@ -92,13 +106,16 @@ async function verifyFileUpload() {
     `${backendUrl}/api/v1/files/upload?is_public=true`,
     {
       method: 'POST',
+      headers: authHeaders,
       body: form,
     }
   );
 
   assert.strictEqual(upload.success, true, 'file upload must succeed');
 
-  const files = await readJson(`${backendUrl}/api/v1/files/list`);
+  const files = await readJson(`${backendUrl}/api/v1/files/list`, {
+    headers: authHeaders,
+  });
   assert(files.total >= 1, `file list expected at least 1 item, got ${files.total}`);
   console.log(`file upload: success, listed files ${files.total}`);
   return upload.file_info.id;
@@ -396,8 +413,9 @@ async function verifyFrontendRoutes() {
 
 async function main() {
   await verifyHealth();
+  const authHeaders = await verifyAcceptanceLogin();
   await verifyApiData();
-  const attachmentFileId = await verifyFileUpload();
+  const attachmentFileId = await verifyFileUpload(authHeaders);
   const articleId = await verifyKnowledgeWriteFlow(attachmentFileId);
   await verifyToolsWriteFlow();
   const newsAuditTarget = await verifyNewsWriteFlow();

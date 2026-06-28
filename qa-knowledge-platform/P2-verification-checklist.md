@@ -106,4 +106,5 @@
 - [x] Admin can publish or reject game QA intelligence from configured news sources.
 - [x] Knowledge articles support comments, likes, favorites, and business-domain metrics.
 - [x] Tool rating, favorite, and usage actions are available for SaaS and game tools.
-- Evidence commands: `python -m pytest tests/test_knowledge_api.py tests/test_tools_api.py tests/test_news_api.py -q`, `node scripts/verify-runtime-acceptance.js`, `pnpm lint`.
+- [x] Evidence files require authenticated upload/list/delete, private download is limited to the owner or administrator, and public files can be shared.
+- Evidence commands: `python -m pytest tests/test_files.py tests/test_knowledge_api.py tests/test_tools_api.py tests/test_news_api.py -q`, `node scripts/verify-runtime-acceptance.js`, `pnpm lint`.

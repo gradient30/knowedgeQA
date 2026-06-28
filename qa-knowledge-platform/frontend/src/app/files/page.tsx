@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Card, Tabs, Table, Button, Space, Tag, message, Modal, Image } from 'antd';
 import { DownloadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import FileUpload from '@/components/common/FileUpload/FileUpload';
@@ -20,19 +20,23 @@ interface FileInfo {
   thumbnail_url?: string;
 }
 
+const authHeaders = (): HeadersInit => {
+  const token = localStorage.getItem('access_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 const FilesPage: React.FC = () => {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewFile, setPreviewFile] = useState<FileInfo | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/v1/files/list', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
+        headers: authHeaders(),
       });
 
       if (response.ok) {
@@ -46,28 +50,80 @@ const FilesPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchFiles();
-  }, []);
+  }, [fetchFiles]);
 
-  const handleDownload = (file: FileInfo) => {
-    window.open(file.file_url, '_blank');
+  const handleDownload = async (file: FileInfo) => {
+    try {
+      const response = await fetch(file.file_url, {
+        headers: authHeaders(),
+      });
+
+      if (!response.ok) {
+        message.error('下载文件失败');
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.original_name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      message.error('下载文件失败');
+    }
   };
 
-  const handlePreview = (file: FileInfo) => {
+  const handlePreview = async (file: FileInfo) => {
+    if (previewImageUrl) {
+      URL.revokeObjectURL(previewImageUrl);
+      setPreviewImageUrl(null);
+    }
+
     setPreviewFile(file);
     setPreviewVisible(true);
+
+    if (!isImageFile(file.mime_type)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(file.thumbnail_url || file.file_url, {
+        headers: authHeaders(),
+      });
+
+      if (!response.ok) {
+        message.error('获取预览失败');
+        return;
+      }
+
+      const blob = await response.blob();
+      setPreviewImageUrl(URL.createObjectURL(blob));
+    } catch (error) {
+      message.error('获取预览失败');
+    }
+  };
+
+  const closePreview = () => {
+    if (previewImageUrl) {
+      URL.revokeObjectURL(previewImageUrl);
+      setPreviewImageUrl(null);
+    }
+    setPreviewVisible(false);
   };
 
   const handleDelete = async (fileId: string) => {
     try {
       const response = await fetch(`/api/v1/files/${fileId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
+        headers: authHeaders(),
       });
 
       if (response.ok) {
@@ -219,12 +275,12 @@ const FilesPage: React.FC = () => {
       <Modal
         title={previewFile?.original_name}
         open={previewVisible}
-        onCancel={() => setPreviewVisible(false)}
+        onCancel={closePreview}
         footer={[
           <Button key="download" onClick={() => previewFile && handleDownload(previewFile)}>
             下载文件
           </Button>,
-          <Button key="close" onClick={() => setPreviewVisible(false)}>
+          <Button key="close" onClick={closePreview}>
             关闭
           </Button>,
         ]}
@@ -232,9 +288,9 @@ const FilesPage: React.FC = () => {
       >
         {previewFile && (
           <div className="text-center">
-            {isImageFile(previewFile.mime_type) ? (
+            {isImageFile(previewFile.mime_type) && previewImageUrl ? (
               <Image
-                src={previewFile.thumbnail_url || previewFile.file_url}
+                src={previewImageUrl}
                 alt={previewFile.original_name}
                 style={{ maxWidth: '100%', maxHeight: '500px' }}
               />

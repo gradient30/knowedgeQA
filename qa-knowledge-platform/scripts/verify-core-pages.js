@@ -45,4 +45,20 @@ for (const page of pages) {
   }
 }
 
+const filesPagePath = 'frontend/src/app/files/page.tsx';
+const filesPage = fs.readFileSync(path.join(root, filesPagePath), 'utf8');
+for (const marker of [
+  '/api/v1/files/list',
+  'Authorization',
+  'Bearer',
+  'URL.createObjectURL',
+]) {
+  if (!filesPage.includes(marker)) {
+    throw new Error(`${filesPagePath} missing authenticated file marker: ${marker}`);
+  }
+}
+if (filesPage.includes('window.open(file.file_url')) {
+  throw new Error(`${filesPagePath} bypasses authenticated private file download`);
+}
+
 console.log('Core pages expose SaaS/game QA workspace markers.');

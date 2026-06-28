@@ -23,6 +23,8 @@ const requiredMarkers = [
   'UI acceptance',
   'Project manager script resilience',
   'Placeholder API gate',
+  'authenticated file upload/list evidence flow',
+  'private file owner/admin access',
   'PUT /api/v1/users/{id}/status',
   'knowledge write flow',
   'create with evidence file',
