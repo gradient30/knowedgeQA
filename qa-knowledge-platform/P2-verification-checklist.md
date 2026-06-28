@@ -108,4 +108,5 @@
 - [x] Tool rating, favorite, and usage actions are available for SaaS and game tools.
 - [x] Evidence files require authenticated upload/list/delete, private download is limited to the owner or administrator, and public files can be shared.
 - [x] Notification administration requires administrator access, persists settings, renders templates, sends a test email, and records logs.
-- Evidence commands: `python -m pytest tests/test_files.py tests/test_notifications.py tests/test_knowledge_api.py tests/test_tools_api.py tests/test_news_api.py -q`, `node scripts/verify-runtime-acceptance.js`, `pnpm lint`.
+- [x] Email verification and password reset use one-time persisted tokens instead of unconditional success responses.
+- Evidence commands: `python -m pytest tests/test_auth.py tests/test_files.py tests/test_notifications.py tests/test_knowledge_api.py tests/test_tools_api.py tests/test_news_api.py -q`, `node scripts/verify-runtime-acceptance.js`, `pnpm lint`.

@@ -43,6 +43,6 @@ async def create_tables():
         from app.modules.news.models import NewsItem, NewsSource
         from app.modules.notifications.models import EmailLog, NotificationSettings
         from app.modules.tools.models import Tool, ToolCategory, ToolRating
-        from app.modules.users.models import Team, User
+        from app.modules.users.models import Team, User, UserToken
 
         await conn.run_sync(Base.metadata.create_all)

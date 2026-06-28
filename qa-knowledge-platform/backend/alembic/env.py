@@ -26,7 +26,7 @@ from app.modules.knowledge.models import Article, ArticleTag, Category, Tag
 from app.modules.news.models import NewsItem, NewsSource
 from app.modules.notifications.models import EmailLog, NotificationSettings
 from app.modules.tools.models import Tool, ToolCategory, ToolRating
-from app.modules.users.models import Team, User
+from app.modules.users.models import Team, User, UserToken
 
 target_metadata = Base.metadata
 

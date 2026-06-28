@@ -38,6 +38,17 @@ async function readJson(url, options) {
   return body ? JSON.parse(body) : null;
 }
 
+async function expectHttpStatus(url, options, expectedStatus) {
+  const response = await fetch(url, options);
+  const body = await response.text();
+  assert.strictEqual(
+    response.status,
+    expectedStatus,
+    `${url} expected ${expectedStatus}, got ${response.status}: ${body.slice(0, 300)}`
+  );
+  return body ? JSON.parse(body) : null;
+}
+
 function writeJson(method, payload) {
   return {
     method,
@@ -79,6 +90,23 @@ async function verifyAcceptanceLogin() {
   return {
     Authorization: `Bearer ${login.access_token}`,
   };
+}
+
+async function verifyAuthTokenGuards() {
+  await expectHttpStatus(
+    `${backendUrl}/api/v1/auth/verify-email`,
+    writeJson('POST', { token: 'runtime-invalid-token' }),
+    400
+  );
+  await expectHttpStatus(
+    `${backendUrl}/api/v1/auth/reset-password`,
+    writeJson('POST', {
+      token: 'runtime-invalid-token',
+      new_password: 'runtimepassword123',
+    }),
+    400
+  );
+  console.log('auth token flow: invalid verification and reset tokens rejected');
 }
 
 async function verifyApiData() {
@@ -487,6 +515,7 @@ async function verifyFrontendRoutes() {
 async function main() {
   await verifyHealth();
   const authHeaders = await verifyAcceptanceLogin();
+  await verifyAuthTokenGuards();
   await verifyApiData();
   const attachmentFileId = await verifyFileUpload(authHeaders);
   await verifyNotificationAdminFlow(authHeaders);

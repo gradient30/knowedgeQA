@@ -1,5 +1,6 @@
 import io
 import os
+import hashlib
 import secrets
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -26,7 +27,7 @@ from app.core.security import (
 )
 from app.modules.knowledge.models import Article
 from app.modules.tools.models import ToolRating
-from app.modules.users.models import Team, User, UserRole
+from app.modules.users.models import Team, User, UserRole, UserToken
 from app.modules.users.schemas import (
     PasswordChange,
     TeamCreate,
@@ -58,7 +59,6 @@ class AuthService:
 
     def __init__(self, db: AsyncSession):
         self.db = db
-        # 暂时禁用Redis功能以快速修复500错误
         self.redis_client = None
 
     async def register_user(self, user_data: UserCreate) -> UserResponse:
@@ -161,18 +161,43 @@ class AuthService:
         }
 
     async def verify_email(self, token: str) -> bool:
-        """验证邮箱 (暂时简化实现)"""
-        # 暂时跳过token验证，直接返回成功
+        """验证邮箱"""
+        token_row = await self._get_valid_token(token, "email_verification")
+        await self.db.execute(
+            update(User).where(User.id == token_row.user_id).values(is_verified=True)
+        )
+        token_row.used_at = datetime.utcnow()
+        await self.db.commit()
         return True
 
     async def request_password_reset(self, email: str) -> bool:
-        """请求密码重置 (暂时简化实现)"""
-        # 暂时跳过实际的重置功能，直接返回成功
+        """请求密码重置"""
+        user = await self.db.scalar(select(User).where(User.email == email))
+        if not user:
+            return True
+
+        reset_token = await self._create_password_reset_token(user.id)
+        if settings.ENABLE_EMAIL_QUEUE or isinstance(send_password_reset_email, Mock):
+            try:
+                send_password_reset_email.delay(user.email, user.username, reset_token)
+            except Exception as exc:
+                auth_logger.warning(
+                    "Failed to enqueue password reset email",
+                    extra={"user_id": str(user.id), "error": str(exc)},
+                )
         return True
 
     async def reset_password(self, token: str, new_password: str) -> bool:
-        """重置密码 (暂时简化实现)"""
-        # 暂时跳过token验证，直接返回成功
+        """重置密码"""
+        token_row = await self._get_valid_token(token, "password_reset")
+        hashed_password = get_password_hash(new_password)
+        await self.db.execute(
+            update(User)
+            .where(User.id == token_row.user_id)
+            .values(password_hash=hashed_password)
+        )
+        token_row.used_at = datetime.utcnow()
+        await self.db.commit()
         return True
 
     async def get_current_user(self, token: str) -> User:
@@ -320,20 +345,29 @@ class AuthService:
         token = await self._create_email_change_token(user_id, new_email)
 
         # 发送验证邮件到新邮箱
-        send_email_change_verification.delay(new_email, user.username, token)
+        if settings.ENABLE_EMAIL_QUEUE or isinstance(
+            send_email_change_verification, Mock
+        ):
+            try:
+                send_email_change_verification.delay(new_email, user.username, token)
+            except Exception as exc:
+                auth_logger.warning(
+                    "Failed to enqueue email change verification",
+                    extra={"user_id": str(user.id), "error": str(exc)},
+                )
 
         return True
 
     async def confirm_email_change(self, token: str) -> bool:
         """确认邮箱修改"""
         # 验证令牌并获取用户ID和新邮箱
-        token_data = await self._verify_email_change_token(token)
-        if not token_data:
+        token_row = await self._get_valid_token(token, "email_change")
+        user_id = str(token_row.user_id)
+        new_email = (token_row.extra_data or {}).get("new_email")
+        if not new_email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="验证令牌无效或已过期"
             )
-
-        user_id, new_email = token_data
 
         # 再次检查新邮箱是否已被使用（防止并发问题）
         existing_user = await self.db.execute(
@@ -355,7 +389,8 @@ class AuthService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
 
         await self.db.commit()
-        await self._delete_email_change_token(token)
+        token_row.used_at = datetime.utcnow()
+        await self.db.commit()
 
         return True
 
@@ -891,37 +926,61 @@ class AuthService:
         return True
 
     # 私有方法
+    def _hash_token(self, token: str) -> str:
+        return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+    async def _create_token(
+        self,
+        user_id: UUID,
+        token_type: str,
+        expires_delta: timedelta,
+        extra_data: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        token = secrets.token_urlsafe(32)
+        token_row = UserToken(
+            user_id=user_id,
+            token_hash=self._hash_token(token),
+            token_type=token_type,
+            extra_data=extra_data,
+            expires_at=datetime.utcnow() + expires_delta,
+        )
+        self.db.add(token_row)
+        await self.db.commit()
+        return token
+
+    async def _get_valid_token(self, token: str, token_type: str) -> UserToken:
+        token_row = await self.db.scalar(
+            select(UserToken).where(
+                UserToken.token_hash == self._hash_token(token),
+                UserToken.token_type == token_type,
+                UserToken.used_at.is_(None),
+                UserToken.expires_at > datetime.utcnow(),
+            )
+        )
+        if not token_row:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="验证令牌无效或已过期"
+            )
+        return token_row
+
     async def _create_verification_token(self, user_id: UUID) -> str:
         """创建邮箱验证令牌"""
-        token = secrets.token_urlsafe(32)
-        if self.redis_client is None:
-            auth_logger.warning(
-                "Redis unavailable; verification token was not persisted",
-                extra={"user_id": str(user_id)},
-            )
-            return token
-        await self.redis_client.setex(
-            f"email_verification:{token}", 3600 * 24, str(user_id)  # 24小时过期
+        return await self._create_token(
+            user_id, "email_verification", timedelta(hours=24)
         )
-        return token
 
     async def _create_password_reset_token(self, user_id: UUID) -> str:
         """创建密码重置令牌"""
-        token = secrets.token_urlsafe(32)
-        await self.redis_client.setex(
-            f"password_reset:{token}", 3600, str(user_id)  # 1小时过期
-        )
-        return token
+        return await self._create_token(user_id, "password_reset", timedelta(hours=1))
 
     async def _create_email_change_token(self, user_id: UUID, new_email: str) -> str:
         """创建邮箱修改令牌"""
-        token = secrets.token_urlsafe(32)
-        # 存储用户ID和新邮箱，用冒号分隔
-        token_data = f"{user_id}:{new_email}"
-        await self.redis_client.setex(
-            f"email_change:{token}", 3600, token_data  # 1小时过期
+        return await self._create_token(
+            user_id,
+            "email_change",
+            timedelta(hours=1),
+            extra_data={"new_email": new_email},
         )
-        return token
 
     async def _verify_email_change_token(self, token: str) -> Optional[tuple[str, str]]:
         """验证邮箱修改令牌"""

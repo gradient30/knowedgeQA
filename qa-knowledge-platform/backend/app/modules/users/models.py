@@ -34,11 +34,11 @@ class ProfessionalRole(str, enum.Enum):
 
 
 class ExperienceLevel(str, enum.Enum):
-    BEGINNER = "0-1"      # 0-1年（新手）
-    JUNIOR = "1-3"        # 1-3年（初级）
+    BEGINNER = "0-1"  # 0-1年（新手）
+    JUNIOR = "1-3"  # 1-3年（初级）
     INTERMEDIATE = "3-5"  # 3-5年（中级）
-    SENIOR = "5-8"        # 5-8年（高级）
-    EXPERT = "8+"         # 8年以上（专家）
+    SENIOR = "5-8"  # 5-8年（高级）
+    EXPERT = "8+"  # 8年以上（专家）
 
 
 class User(Base):
@@ -52,7 +52,9 @@ class User(Base):
     avatar_url = Column(Text)
     bio = Column(Text)
     role = Column(Enum(UserRole), default=UserRole.MEMBER, nullable=False)
-    professional_role = Column(Enum(ProfessionalRole), default=ProfessionalRole.TEST_ENGINEER)
+    professional_role = Column(
+        Enum(ProfessionalRole), default=ProfessionalRole.TEST_ENGINEER
+    )
     experience_level = Column(Enum(ExperienceLevel), default=ExperienceLevel.JUNIOR)
     specialties = Column(JSON)  # 存储专业领域数组
     team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"))
@@ -67,6 +69,21 @@ class User(Base):
     team = relationship("Team", foreign_keys=[team_id], back_populates="members")
     # Article关系 - 使用字符串引用避免循环导入
     articles = relationship("Article", back_populates="author")
+
+
+class UserToken(Base):
+    __tablename__ = "user_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    token_hash = Column(String(128), unique=True, nullable=False, index=True)
+    token_type = Column(String(50), nullable=False, index=True)
+    extra_data = Column(JSON)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
 
 
 class Team(Base):
