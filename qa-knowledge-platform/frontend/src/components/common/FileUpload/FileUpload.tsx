@@ -11,7 +11,7 @@ interface FileUploadProps {
   maxCount?: number;
   accept?: string;
   maxSize?: number; // MB
-  onUploadSuccess?: (files: any[]) => void;
+  onUploadSuccess?: (files: UploadedFile[]) => void;
   onUploadError?: (error: string) => void;
   showPreview?: boolean;
   isPublic?: boolean;

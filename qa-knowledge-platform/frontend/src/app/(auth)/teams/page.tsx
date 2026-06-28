@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Card, Button, Typography, Space, Avatar, Tag, List, Modal, Form, Input, Select, message } from 'antd';
 import { TeamOutlined, UserAddOutlined, UserOutlined, CrownOutlined, EditOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/lib/store/auth';
@@ -26,7 +26,7 @@ interface Team {
   description?: string;
   leader_id?: string;
   member_count: number;
-  leader?: any;
+  leader?: TeamMember;
   members: TeamMember[];
   created_at: string;
 }
@@ -42,11 +42,7 @@ export default function TeamsPage() {
   const [inviteForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
-  useEffect(() => {
-    loadTeamInfo();
-  }, []);
-
-  const loadTeamInfo = async () => {
+  const loadTeamInfo = useCallback(async () => {
     if (!user?.team_id) {
       setIsLoading(false);
       return;
@@ -71,7 +67,11 @@ export default function TeamsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.team_id]);
+
+  useEffect(() => {
+    loadTeamInfo();
+  }, [loadTeamInfo]);
 
   const handleCreateTeam = async (values: { name: string; description?: string }) => {
     try {

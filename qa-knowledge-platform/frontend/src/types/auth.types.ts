@@ -46,7 +46,7 @@ export interface User {
   experience_level?: ExperienceLevel;
   specialties?: Specialty[];
   team_id?: string;
-  skills?: Record<string, any>;
+  skills?: Record<string, unknown>;
   is_active: boolean;
   is_verified: boolean;
   last_login?: string;
@@ -86,7 +86,7 @@ export interface UserUpdate {
   professional_role?: ProfessionalRole;
   experience_level?: ExperienceLevel;
   specialties?: Specialty[];
-  skills?: Record<string, any>;
+  skills?: Record<string, unknown>;
 }
 
 export interface PasswordReset {
@@ -115,7 +115,7 @@ export interface ApiError {
   error: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
   timestamp: string;
   path: string;

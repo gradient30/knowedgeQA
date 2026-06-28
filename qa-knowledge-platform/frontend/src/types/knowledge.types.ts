@@ -12,7 +12,7 @@ export interface Article {
   view_count: number;
   like_count: number;
   comment_count: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   published_at?: string;
@@ -53,7 +53,7 @@ export interface CreateArticleRequest {
   type: '经验分享' | 'Bug案例' | '工具教程' | '最佳实践';
   tags?: string[];
   status: 'draft' | 'private' | 'team' | 'public';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ArticleListParams {

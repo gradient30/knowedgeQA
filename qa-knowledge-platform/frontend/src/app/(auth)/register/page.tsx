@@ -41,7 +41,7 @@ export default function RegisterPage() {
     }
   };
 
-  const validatePassword = (_: any, value: string) => {
+  const validatePassword = (_rule: unknown, value: string) => {
     if (!value) {
       return Promise.reject(new Error('请输入密码'));
     }
@@ -54,7 +54,7 @@ export default function RegisterPage() {
     return Promise.resolve();
   };
 
-  const validateConfirmPassword = (_: any, value: string) => {
+  const validateConfirmPassword = (_rule: unknown, value: string) => {
     if (!value) {
       return Promise.reject(new Error('请确认密码'));
     }

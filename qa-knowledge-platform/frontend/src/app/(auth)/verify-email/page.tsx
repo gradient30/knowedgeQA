@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useCallback, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, Button, Typography, Alert, Spin } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
@@ -15,19 +15,7 @@ function VerifyEmailContent() {
   const [isVerified, setIsVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const token = searchParams.get('token');
-    
-    if (!token) {
-      setError('验证链接无效');
-      setIsLoading(false);
-      return;
-    }
-
-    verifyEmail(token);
-  }, [searchParams]);
-
-  const verifyEmail = async (token: string) => {
+  const verifyEmail = useCallback(async (token: string) => {
     try {
       setIsLoading(true);
       const result = await AuthAPI.verifyEmail({ token });
@@ -37,13 +25,26 @@ function VerifyEmailContent() {
       } else {
         setError('邮箱验证失败');
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error?.message || '验证失败，请重试';
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : '验证失败，请重试';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+
+    if (!token) {
+      setError('验证链接无效');
+      setIsLoading(false);
+      return;
+    }
+
+    verifyEmail(token);
+  }, [searchParams, verifyEmail]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

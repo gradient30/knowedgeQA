@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   Card,
   Tabs,
@@ -46,6 +46,43 @@ interface EmailTemplate {
   variables: string[];
 }
 
+interface EmailSettings {
+  email_verification: boolean;
+  password_reset: boolean;
+  welcome_email: boolean;
+  article_comments: boolean;
+  team_invitations: boolean;
+  system_updates: boolean;
+}
+
+interface EmailSettingsResponse {
+  notifications: EmailSettings;
+}
+
+interface SmtpStatus {
+  status: 'healthy' | 'not_configured' | 'error';
+  message: string;
+  details: {
+    smtp_host?: string;
+    smtp_port?: number | string;
+    smtp_user?: string;
+    smtp_tls?: boolean;
+    last_check?: string;
+  };
+}
+
+interface TestEmailValues {
+  to_email: string;
+}
+
+interface PreviewTemplateValues {
+  template_name: string;
+}
+
+interface PreviewTemplateResponse {
+  html_content: string;
+}
+
 const NotificationsPage: React.FC = () => {
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
@@ -53,14 +90,14 @@ const NotificationsPage: React.FC = () => {
   const [testEmailVisible, setTestEmailVisible] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewContent, setPreviewContent] = useState('');
-  const [smtpStatus, setSmtpStatus] = useState<any>(null);
+  const [smtpStatus, setSmtpStatus] = useState<SmtpStatus | null>(null);
   
   const [testEmailForm] = Form.useForm();
   const [settingsForm] = Form.useForm();
   const [previewForm] = Form.useForm();
 
   // 获取邮件设置
-  const fetchEmailSettings = async () => {
+  const fetchEmailSettings = useCallback(async () => {
     try {
       const response = await fetch('/api/v1/notifications/email-settings', {
         headers: {
@@ -69,16 +106,16 @@ const NotificationsPage: React.FC = () => {
       });
       
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as EmailSettingsResponse;
         settingsForm.setFieldsValue(data.notifications);
       }
     } catch (error) {
       message.error('获取邮件设置失败');
     }
-  };
+  }, [settingsForm]);
 
   // 获取邮件日志
-  const fetchEmailLogs = async () => {
+  const fetchEmailLogs = useCallback(async () => {
     try {
       const response = await fetch('/api/v1/notifications/email-logs', {
         headers: {
@@ -87,16 +124,16 @@ const NotificationsPage: React.FC = () => {
       });
       
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as { logs: EmailLog[] };
         setEmailLogs(data.logs);
       }
     } catch (error) {
       message.error('获取邮件日志失败');
     }
-  };
+  }, []);
 
   // 获取邮件模板
-  const fetchEmailTemplates = async () => {
+  const fetchEmailTemplates = useCallback(async () => {
     try {
       const response = await fetch('/api/v1/notifications/email-templates', {
         headers: {
@@ -105,16 +142,16 @@ const NotificationsPage: React.FC = () => {
       });
       
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as { templates: EmailTemplate[] };
         setEmailTemplates(data.templates);
       }
     } catch (error) {
       message.error('获取邮件模板失败');
     }
-  };
+  }, []);
 
   // 获取SMTP状态
-  const fetchSmtpStatus = async () => {
+  const fetchSmtpStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/v1/notifications/smtp-status', {
         headers: {
@@ -123,23 +160,23 @@ const NotificationsPage: React.FC = () => {
       });
       
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as SmtpStatus;
         setSmtpStatus(data);
       }
     } catch (error) {
       message.error('获取SMTP状态失败');
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchEmailSettings();
     fetchEmailLogs();
     fetchEmailTemplates();
     fetchSmtpStatus();
-  }, []);
+  }, [fetchEmailLogs, fetchEmailSettings, fetchEmailTemplates, fetchSmtpStatus]);
 
   // 更新邮件设置
-  const handleUpdateSettings = async (values: any) => {
+  const handleUpdateSettings = async (values: EmailSettings) => {
     try {
       setLoading(true);
       const response = await fetch('/api/v1/notifications/email-settings', {
@@ -165,7 +202,7 @@ const NotificationsPage: React.FC = () => {
   };
 
   // 发送测试邮件
-  const handleSendTestEmail = async (values: any) => {
+  const handleSendTestEmail = async (values: TestEmailValues) => {
     try {
       setLoading(true);
       const response = await fetch('/api/v1/notifications/test-email', {
@@ -194,7 +231,7 @@ const NotificationsPage: React.FC = () => {
   };
 
   // 预览邮件模板
-  const handlePreviewTemplate = async (values: any) => {
+  const handlePreviewTemplate = async (values: PreviewTemplateValues) => {
     try {
       setLoading(true);
       const response = await fetch('/api/v1/notifications/preview-template', {
@@ -207,7 +244,7 @@ const NotificationsPage: React.FC = () => {
       });
       
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as PreviewTemplateResponse;
         setPreviewContent(data.html_content);
         setPreviewVisible(true);
       } else {

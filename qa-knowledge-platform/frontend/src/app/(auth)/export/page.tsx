@@ -16,6 +16,13 @@ interface ExportOption {
   size?: string;
 }
 
+interface ExportFormValues {
+  format: 'json' | 'csv';
+  include_profile: boolean;
+  include_articles: boolean;
+  include_comments: boolean;
+}
+
 export default function DataExportPage() {
   const { user } = useAuthStore();
   const [form] = Form.useForm();
@@ -46,7 +53,7 @@ export default function DataExportPage() {
     }
   ];
 
-  const handleExport = async (values: any) => {
+  const handleExport = async (values: ExportFormValues) => {
     setIsExporting(true);
     setExportProgress('正在准备导出数据...');
 

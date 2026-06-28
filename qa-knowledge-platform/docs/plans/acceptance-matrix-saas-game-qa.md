@@ -18,7 +18,7 @@ This matrix defines the release evidence for the SaaS and game QA baseline. It m
 - Backend full regression: `python -m pytest tests/ --cov=app -q` -> 61 passed, 71% coverage.
 - Database migration graph: `poetry run alembic heads` -> single Alembic release head `20260628_add_audit_logs`; fresh empty database upgrade with `DATABASE_URL=postgresql+asyncpg://... poetry run alembic upgrade head` -> passed.
 - Frontend static gate: `node scripts/verify-core-pages.js` -> passed.
-- Frontend quality gate: `pnpm type-check`, `pnpm lint`, `pnpm build` -> passed. Lint still reports non-blocking existing `any` and hook dependency warnings.
+- Frontend quality gate: `pnpm type-check`, `pnpm lint`, `pnpm build` -> passed with zero ESLint warnings.
 - Runtime Docker acceptance: `node scripts/verify-runtime-acceptance.js` -> validates backend health, SaaS/Game seed data, file upload, knowledge write flow with linked evidence file, comment, like, favorite, metrics, audit flow, tool rating/favorite/usage flow, news source governance, source-backed intelligence flow, source-backed news summary, and frontend routes on the integrated stack.
 - UI acceptance: `npx --yes --package playwright node scripts/verify-ui-acceptance.js` -> validates `/knowledge`, `/tools`, and `/news` render live API data, filter by SaaS/Game, and open create/configuration forms in a browser.
 - UI screenshot evidence: `output/acceptance/ui-knowledge.png`, `output/acceptance/ui-tools.png`, `output/acceptance/ui-news.png`.

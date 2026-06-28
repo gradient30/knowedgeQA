@@ -49,15 +49,16 @@ function ResetPasswordContent() {
       } else {
         setError('密码重置失败');
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error?.message || '重置失败，请重试';
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : '重置失败，请重试';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const validatePassword = (_: any, value: string) => {
+  const validatePassword = (_rule: unknown, value: string) => {
     if (!value) {
       return Promise.reject(new Error('请输入新密码'));
     }
@@ -70,7 +71,7 @@ function ResetPasswordContent() {
     return Promise.resolve();
   };
 
-  const validateConfirmPassword = (_: any, value: string) => {
+  const validateConfirmPassword = (_rule: unknown, value: string) => {
     if (!value) {
       return Promise.reject(new Error('请确认新密码'));
     }

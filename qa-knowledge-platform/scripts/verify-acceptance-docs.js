@@ -27,6 +27,7 @@ const requiredMarkers = [
   'audit flow',
   'single Alembic release head',
   'fresh empty database upgrade',
+  'zero ESLint warnings',
   'intelligence flow',
   'source-backed news summary',
   'output/acceptance/ui-knowledge.png',

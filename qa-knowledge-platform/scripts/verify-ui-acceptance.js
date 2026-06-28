@@ -4,6 +4,7 @@ const path = require('path');
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 const browserChannel = process.env.PLAYWRIGHT_CHANNEL || 'msedge';
 const outputDir = path.resolve(__dirname, '..', 'output', 'acceptance');
+const dataTimeoutMs = 30000;
 
 const pages = [
   {
@@ -64,6 +65,25 @@ async function chooseDomain(page, label) {
     .click();
 }
 
+async function waitForVisibleText(page, text) {
+  try {
+    await page.getByText(text, { exact: false }).first().waitFor({
+      state: 'visible',
+      timeout: dataTimeoutMs,
+    });
+  } catch (error) {
+    const pageText = await page
+      .locator('body')
+      .innerText({ timeout: 5000 })
+      .catch(() => '<unable to read page text>');
+    throw new Error(
+      `Expected text "${text}" was not visible within ${dataTimeoutMs}ms.\n` +
+        `Current page text:\n${pageText}`,
+      { cause: error }
+    );
+  }
+}
+
 async function main() {
   fs.mkdirSync(outputDir, { recursive: true });
 
@@ -86,27 +106,16 @@ async function main() {
     for (const check of pages) {
       const url = `${frontendUrl}${check.path}`;
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.waitForLoadState('networkidle', { timeout: dataTimeoutMs }).catch(() => undefined);
 
-      await page.getByText(check.saasText, { exact: false }).first().waitFor({
-        state: 'visible',
-        timeout: 15000,
-      });
-      await page.getByText(check.gameText, { exact: false }).first().waitFor({
-        state: 'visible',
-        timeout: 15000,
-      });
+      await waitForVisibleText(page, check.saasText);
+      await waitForVisibleText(page, check.gameText);
 
       await chooseDomain(page, '游戏');
-      await page.getByText(check.gameText, { exact: false }).first().waitFor({
-        state: 'visible',
-        timeout: 15000,
-      });
+      await waitForVisibleText(page, check.gameText);
 
       await chooseDomain(page, 'SaaS');
-      await page.getByText(check.saasText, { exact: false }).first().waitFor({
-        state: 'visible',
-        timeout: 15000,
-      });
+      await waitForVisibleText(page, check.saasText);
 
       await page.locator('main button.ant-btn-primary').last().click();
       await page.getByPlaceholder(check.modalPlaceholder, { exact: false }).first().waitFor({
