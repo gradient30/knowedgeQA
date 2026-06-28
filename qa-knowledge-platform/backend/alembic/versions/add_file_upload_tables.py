@@ -1,7 +1,7 @@
 """Add file upload tables
 
 Revision ID: add_file_upload_tables
-Revises: 72a93e43c917
+Revises: 001_create_core_tables
 Create Date: 2025-08-30 16:00:00.000000
 
 """
@@ -11,15 +11,23 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'add_file_upload_tables'
-down_revision = '72a93e43c917'
+down_revision = '001_create_core_tables'
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
     # Create enum types
-    op.execute("CREATE TYPE filetype AS ENUM ('image', 'document', 'archive', 'other')")
-    op.execute("CREATE TYPE filestatus AS ENUM ('uploading', 'processing', 'ready', 'error')")
+    file_type_enum = postgresql.ENUM(
+        'image', 'document', 'archive', 'other', name='filetype'
+    )
+    file_status_enum = postgresql.ENUM(
+        'uploading', 'processing', 'ready', 'error', name='filestatus'
+    )
+    file_type_enum.create(op.get_bind(), checkfirst=True)
+    file_status_enum.create(op.get_bind(), checkfirst=True)
+    file_type = postgresql.ENUM(name='filetype', create_type=False)
+    file_status = postgresql.ENUM(name='filestatus', create_type=False)
     
     # Create uploaded_files table
     op.create_table('uploaded_files',
@@ -30,8 +38,8 @@ def upgrade() -> None:
         sa.Column('file_path', sa.Text(), nullable=False),
         sa.Column('file_size', sa.Integer(), nullable=False),
         sa.Column('mime_type', sa.String(length=100), nullable=False),
-        sa.Column('file_type', sa.Enum('image', 'document', 'archive', 'other', name='filetype'), nullable=False),
-        sa.Column('status', sa.Enum('uploading', 'processing', 'ready', 'error', name='filestatus'), nullable=False),
+        sa.Column('file_type', file_type, nullable=False),
+        sa.Column('status', file_status, nullable=False),
         sa.Column('thumbnail_path', sa.Text(), nullable=True),
         sa.Column('file_metadata', postgresql.JSON(astext_type=sa.Text()), nullable=True),
         sa.Column('download_count', sa.Integer(), nullable=True),
@@ -59,5 +67,5 @@ def downgrade() -> None:
     op.drop_table('uploaded_files')
     
     # Drop enum types
-    op.execute("DROP TYPE filestatus")
-    op.execute("DROP TYPE filetype")
+    op.execute("DROP TYPE IF EXISTS filestatus")
+    op.execute("DROP TYPE IF EXISTS filetype")

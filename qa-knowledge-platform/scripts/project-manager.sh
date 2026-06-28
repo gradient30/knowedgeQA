@@ -370,6 +370,32 @@ build_project() {
     log_success "项目构建完成"
 }
 
+verify_database_migrations() {
+    local database_name="qa_migration_acceptance"
+    local database_url="postgresql+asyncpg://qa_user:qa_password@db:5432/${database_name}"
+
+    log_info "验证数据库迁移图..."
+    run_compose -f docker-compose.dev.yml exec backend poetry run alembic heads
+
+    log_info "验证 fresh empty database upgrade..."
+    run_compose -f docker-compose.dev.yml exec -T db psql -U qa_user -d postgres -c "DROP DATABASE IF EXISTS ${database_name}"
+    run_compose -f docker-compose.dev.yml exec -T db psql -U qa_user -d postgres -c "CREATE DATABASE ${database_name}"
+
+    set +e
+    run_compose -f docker-compose.dev.yml exec -T -e "DATABASE_URL=${database_url}" backend poetry run alembic upgrade head
+    local upgrade_status=$?
+    run_compose -f docker-compose.dev.yml exec -T db psql -U qa_user -d postgres -c "DROP DATABASE IF EXISTS ${database_name}"
+    local cleanup_status=$?
+    set -e
+
+    if [ "$cleanup_status" -ne 0 ]; then
+        exit "$cleanup_status"
+    fi
+    if [ "$upgrade_status" -ne 0 ]; then
+        exit "$upgrade_status"
+    fi
+}
+
 # 运行测试
 run_tests() {
     log_info "运行测试..."
@@ -377,7 +403,9 @@ run_tests() {
     # 后端测试
     log_info "运行后端测试..."
     run_compose -f docker-compose.dev.yml exec backend poetry run pytest tests/ --cov=app
-    
+
+    verify_database_migrations
+
     # 前端静态验证
     log_info "运行前端类型检查..."
     run_compose -f docker-compose.dev.yml exec frontend pnpm type-check

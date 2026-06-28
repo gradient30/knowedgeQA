@@ -15,7 +15,8 @@ This matrix defines the release evidence for the SaaS and game QA baseline. It m
 ## Release Evidence
 
 - Backend focused suite: `python -m pytest tests/test_taxonomy.py tests/test_knowledge_api.py tests/test_tools_api.py tests/test_news_api.py tests/test_intelligence_api.py -q` -> 17 passed.
-- Backend full regression: `python -m pytest tests/ --cov=app -q` -> 60 passed, 71% coverage.
+- Backend full regression: `python -m pytest tests/ --cov=app -q` -> 61 passed, 71% coverage.
+- Database migration graph: `poetry run alembic heads` -> single Alembic release head `20260628_add_audit_logs`; fresh empty database upgrade with `DATABASE_URL=postgresql+asyncpg://... poetry run alembic upgrade head` -> passed.
 - Frontend static gate: `node scripts/verify-core-pages.js` -> passed.
 - Frontend quality gate: `pnpm type-check`, `pnpm lint`, `pnpm build` -> passed. Lint still reports non-blocking existing `any` and hook dependency warnings.
 - Runtime Docker acceptance: `node scripts/verify-runtime-acceptance.js` -> validates backend health, SaaS/Game seed data, file upload, knowledge write flow with linked evidence file, comment, like, favorite, metrics, audit flow, tool rating/favorite/usage flow, news source governance, source-backed intelligence flow, source-backed news summary, and frontend routes on the integrated stack.
@@ -49,6 +50,7 @@ Use a local dev stack with backend on `8000` and frontend on `3000`.
 | Runtime Docker acceptance | `node scripts/verify-runtime-acceptance.js` | Passed: health, SaaS/Game APIs, file upload, knowledge create with evidence file/approve/comment/like/favorite/metrics/update/search/delete, audit flow for knowledge/news/source changes, tool create/delete/rate/favorite/usage, news source CRUD, news publish/reject, intelligence flow, and core frontend routes. |
 | UI acceptance | `npx --yes --package playwright node scripts/verify-ui-acceptance.js` | Passed: live API data rendered, SaaS/Game filters worked, and create/configuration forms opened on knowledge, tools, and news pages. |
 | Backend focused regression | `python -m pytest tests/test_taxonomy.py tests/test_knowledge_api.py tests/test_tools_api.py tests/test_news_api.py tests/test_intelligence_api.py -q` | Passed: 17 tests. |
-| Backend full regression | `python -m pytest tests/ --cov=app -q` | Passed: 60 tests, 71% coverage. |
+| Backend full regression | `python -m pytest tests/ --cov=app -q` | Passed: 61 tests, 71% coverage. |
+| Database migration graph | `poetry run alembic heads`; run `poetry run alembic upgrade head` against a fresh empty database. | Passed: single Alembic release head `20260628_add_audit_logs`; fresh empty database upgrade passed. |
 | Frontend release build | Stop `frontend`, run `$docker compose -f docker-compose.dev.yml run --rm --no-deps -e NODE_ENV=production -e NEXT_TELEMETRY_DISABLED=1 frontend sh -lc "rm -rf .next && pnpm build"`, then start `frontend`. | Passed: 17 static routes generated without `.next` contention. |
 | Documentation gate | `node scripts/verify-acceptance-docs.js` | Passed. |

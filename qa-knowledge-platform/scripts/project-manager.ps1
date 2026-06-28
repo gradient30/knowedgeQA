@@ -246,9 +246,42 @@ function Build-Project {
     Write-Success '项目构建完成'
 }
 
+function Verify-DatabaseMigrations {
+    $composeFile = 'docker-compose.dev.yml'
+    $databaseName = 'qa_migration_acceptance'
+    $databaseUrl = "postgresql+asyncpg://qa_user:qa_password@db:5432/$databaseName"
+    $docker = Resolve-DockerCommand
+    if (-not $docker) {
+        Write-ErrorMessage 'Docker 未安装或未加入 PATH。请安装 Docker Desktop，或安装后重新打开 PowerShell。'
+        exit 1
+    }
+
+    Write-Info '验证数据库迁移图...'
+    Invoke-Compose -ComposeFile $composeFile -ComposeArgs @('exec', 'backend', 'poetry', 'run', 'alembic', 'heads')
+
+    Write-Info '验证 fresh empty database upgrade...'
+    Invoke-Compose -ComposeFile $composeFile -ComposeArgs @('exec', '-T', 'db', 'psql', '-U', 'qa_user', '-d', 'postgres', '-c', "DROP DATABASE IF EXISTS $databaseName")
+    Invoke-Compose -ComposeFile $composeFile -ComposeArgs @('exec', '-T', 'db', 'psql', '-U', 'qa_user', '-d', 'postgres', '-c', "CREATE DATABASE $databaseName")
+
+    & $docker compose -f $composeFile exec -T -e "DATABASE_URL=$databaseUrl" backend poetry run alembic upgrade head
+    $upgradeExitCode = $LASTEXITCODE
+
+    & $docker compose -f $composeFile exec -T db psql -U qa_user -d postgres -c "DROP DATABASE IF EXISTS $databaseName"
+    $cleanupExitCode = $LASTEXITCODE
+
+    if ($cleanupExitCode -ne 0) {
+        exit $cleanupExitCode
+    }
+    if ($upgradeExitCode -ne 0) {
+        exit $upgradeExitCode
+    }
+}
+
 function Run-Tests {
     Write-Info '运行后端测试...'
     Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('exec', 'backend', 'poetry', 'run', 'pytest', 'tests/', '--cov=app')
+
+    Verify-DatabaseMigrations
 
     Write-Info '运行前端类型检查...'
     Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('exec', 'frontend', 'pnpm', 'type-check')

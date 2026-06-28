@@ -25,6 +25,8 @@ const requiredMarkers = [
   'create with evidence file',
   'comment, like, favorite, metrics',
   'audit flow',
+  'single Alembic release head',
+  'fresh empty database upgrade',
   'intelligence flow',
   'source-backed news summary',
   'output/acceptance/ui-knowledge.png',

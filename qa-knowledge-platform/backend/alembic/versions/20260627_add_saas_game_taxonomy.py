@@ -1,7 +1,7 @@
 """Add SaaS and game QA taxonomy fields.
 
 Revision ID: 20260627_add_saas_game_taxonomy
-Revises: 001_create_core_tables
+Revises: add_professional_fields
 Create Date: 2026-06-27 00:00:00.000000
 """
 
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 
 revision = "20260627_add_saas_game_taxonomy"
-down_revision = "001_create_core_tables"
+down_revision = "add_professional_fields"
 branch_labels = None
 depends_on = None
 

@@ -1,5 +1,7 @@
-from app.modules.knowledge.models import ArticleStatus
+import ast
 from pathlib import Path
+
+from app.modules.knowledge.models import ArticleStatus
 
 
 def test_business_domain_values_exist():
@@ -66,3 +68,39 @@ def test_taxonomy_migration_adds_domain_and_review_columns():
     assert "review_status" in content
     assert "visibility" in content
     assert "project_key" in content
+
+
+def test_alembic_versions_have_single_release_head():
+    versions_dir = Path(__file__).resolve().parents[1] / "alembic" / "versions"
+    revisions = set()
+    referenced_revisions = set()
+    root_revisions = set()
+
+    for migration in versions_dir.glob("*.py"):
+        tree = ast.parse(migration.read_text(encoding="utf-8"))
+        assignments = {
+            node.targets[0].id: ast.literal_eval(node.value)
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id in {"revision", "down_revision"}
+            and not isinstance(node.value, ast.Name)
+        }
+
+        revision = assignments.get("revision")
+        down_revision = assignments.get("down_revision")
+        if revision:
+            revisions.add(revision)
+            if down_revision is None:
+                root_revisions.add(revision)
+        if isinstance(down_revision, str):
+            referenced_revisions.add(down_revision)
+        elif isinstance(down_revision, tuple):
+            referenced_revisions.update(item for item in down_revision if item)
+
+    heads = revisions - referenced_revisions
+    assert len(heads) == 1, f"Expected one Alembic head, found {sorted(heads)}"
+    assert len(root_revisions) == 1, (
+        f"Expected one Alembic root, found {sorted(root_revisions)}"
+    )

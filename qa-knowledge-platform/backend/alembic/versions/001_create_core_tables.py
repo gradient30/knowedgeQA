@@ -19,25 +19,33 @@ depends_on = None
 def upgrade() -> None:
     # Create enum types
     user_role_enum = postgresql.ENUM('member', 'admin', 'super_admin', name='userrole')
-    user_role_enum.create(op.get_bind())
+    user_role_enum.create(op.get_bind(), checkfirst=True)
     
     article_status_enum = postgresql.ENUM('draft', 'private', 'team', 'public', name='articlestatus')
-    article_status_enum.create(op.get_bind())
+    article_status_enum.create(op.get_bind(), checkfirst=True)
     
     article_type_enum = postgresql.ENUM('经验分享', 'Bug案例', '工具教程', '最佳实践', name='articletype')
-    article_type_enum.create(op.get_bind())
+    article_type_enum.create(op.get_bind(), checkfirst=True)
     
     category_type_enum = postgresql.ENUM('功能测试', '性能测试', '自动化测试', '游戏测试', '安全测试', '移动测试', name='categorytype')
-    category_type_enum.create(op.get_bind())
+    category_type_enum.create(op.get_bind(), checkfirst=True)
     
     tag_category_enum = postgresql.ENUM('技术', '工具', '平台', '难度', '类型', name='tagcategory')
-    tag_category_enum.create(op.get_bind())
+    tag_category_enum.create(op.get_bind(), checkfirst=True)
     
     tool_category_type_enum = postgresql.ENUM('功能测试', '性能测试', '自动化测试', '移动测试', '游戏测试', '管理工具', name='toolcategorytype')
-    tool_category_type_enum.create(op.get_bind())
+    tool_category_type_enum.create(op.get_bind(), checkfirst=True)
     
     news_category_enum = postgresql.ENUM('软件测试', '游戏测试', 'AI测试', '行业动态', name='newscategory')
-    news_category_enum.create(op.get_bind())
+    news_category_enum.create(op.get_bind(), checkfirst=True)
+
+    user_role_type = postgresql.ENUM(name='userrole', create_type=False)
+    article_status_type = postgresql.ENUM(name='articlestatus', create_type=False)
+    article_type = postgresql.ENUM(name='articletype', create_type=False)
+    category_type = postgresql.ENUM(name='categorytype', create_type=False)
+    tag_category_type = postgresql.ENUM(name='tagcategory', create_type=False)
+    tool_category_type = postgresql.ENUM(name='toolcategorytype', create_type=False)
+    news_category_type = postgresql.ENUM(name='newscategory', create_type=False)
 
     # Create teams table first (referenced by users)
     op.create_table('teams',
@@ -60,7 +68,7 @@ def upgrade() -> None:
         sa.Column('nickname', sa.String(length=100), nullable=True),
         sa.Column('avatar_url', sa.Text(), nullable=True),
         sa.Column('bio', sa.Text(), nullable=True),
-        sa.Column('role', user_role_enum, nullable=False),
+        sa.Column('role', user_role_type, nullable=False),
         sa.Column('team_id', postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column('skills', postgresql.JSON(astext_type=sa.Text()), nullable=True),
         sa.Column('is_active', sa.Boolean(), nullable=True),
@@ -82,7 +90,7 @@ def upgrade() -> None:
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('name', sa.String(length=100), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('type', category_type_enum, nullable=False),
+        sa.Column('type', category_type, nullable=False),
         sa.Column('parent_id', postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column('sort_order', sa.Integer(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
@@ -95,7 +103,7 @@ def upgrade() -> None:
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('name', sa.String(length=50), nullable=False),
         sa.Column('color', sa.String(length=7), nullable=True),
-        sa.Column('category', tag_category_enum, nullable=False),
+        sa.Column('category', tag_category_type, nullable=False),
         sa.Column('usage_count', sa.Integer(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
         sa.PrimaryKeyConstraint('id'),
@@ -112,8 +120,8 @@ def upgrade() -> None:
         sa.Column('summary', sa.Text(), nullable=True),
         sa.Column('content', sa.Text(), nullable=False),
         sa.Column('cover_image', sa.Text(), nullable=True),
-        sa.Column('status', article_status_enum, nullable=False),
-        sa.Column('type', article_type_enum, nullable=False),
+        sa.Column('status', article_status_type, nullable=False),
+        sa.Column('type', article_type, nullable=False),
         sa.Column('view_count', sa.Integer(), nullable=True),
         sa.Column('like_count', sa.Integer(), nullable=True),
         sa.Column('comment_count', sa.Integer(), nullable=True),
@@ -140,7 +148,7 @@ def upgrade() -> None:
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('name', sa.String(length=100), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('type', tool_category_type_enum, nullable=False),
+        sa.Column('type', tool_category_type, nullable=False),
         sa.Column('sort_order', sa.Integer(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
         sa.PrimaryKeyConstraint('id')
@@ -189,7 +197,7 @@ def upgrade() -> None:
         sa.Column('keywords', postgresql.JSON(astext_type=sa.Text()), nullable=True),
         sa.Column('frequency_hours', sa.Integer(), nullable=True),
         sa.Column('is_active', sa.Boolean(), nullable=True),
-        sa.Column('category', news_category_enum, nullable=False),
+        sa.Column('category', news_category_type, nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint('id')
