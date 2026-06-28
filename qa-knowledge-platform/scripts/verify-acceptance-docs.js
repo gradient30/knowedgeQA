@@ -22,6 +22,8 @@ const requiredMarkers = [
   'Runtime Docker acceptance',
   'UI acceptance',
   'Project manager script resilience',
+  'Placeholder API gate',
+  'PUT /api/v1/users/{id}/status',
   'knowledge write flow',
   'create with evidence file',
   'comment, like, favorite, metrics',

@@ -206,6 +206,98 @@ class TestUsers:
         assert "profile" in data
         assert "statistics" in data
 
+    @pytest.mark.asyncio
+    async def test_admin_user_management_flow(self, client: AsyncClient):
+        """管理员应能查询用户，超级管理员应能调整角色和状态"""
+        super_admin_data = {
+            "username": "superadmin",
+            "email": "superadmin@example.com",
+            "password": "testpassword123",
+            "role": "super_admin",
+        }
+        register_response = await client.post(
+            "/api/v1/auth/register", json=super_admin_data
+        )
+        assert register_response.status_code == 201
+        login_response = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "superadmin@example.com", "password": "testpassword123"},
+        )
+        super_admin_token = login_response.json()["access_token"]
+        super_admin_headers = {"Authorization": f"Bearer {super_admin_token}"}
+        super_admin_profile = await client.get(
+            "/api/v1/users/profile", headers=super_admin_headers
+        )
+        assert super_admin_profile.status_code == 200
+        assert super_admin_profile.json()["role"] == "super_admin"
+
+        target_token = await self.create_and_login_user(
+            client,
+            username="manageduser",
+            email="managed@example.com",
+        )
+        target_profile = await client.get(
+            "/api/v1/users/profile",
+            headers={"Authorization": f"Bearer {target_token}"},
+        )
+        target_user_id = target_profile.json()["id"]
+
+        list_response = await client.get(
+            "/api/v1/users/",
+            params={"skip": 0, "limit": 10},
+            headers=super_admin_headers,
+        )
+        assert list_response.status_code == 200
+        listed_users = list_response.json()
+        assert {user["email"] for user in listed_users} >= {
+            "superadmin@example.com",
+            "managed@example.com",
+        }
+
+        get_response = await client.get(
+            f"/api/v1/users/{target_user_id}",
+            headers=super_admin_headers,
+        )
+        assert get_response.status_code == 200
+        assert get_response.json()["email"] == "managed@example.com"
+
+        promote_response = await client.put(
+            f"/api/v1/users/{target_user_id}/role",
+            params={"new_role": "admin"},
+            headers=super_admin_headers,
+        )
+        assert promote_response.status_code == 200
+        assert promote_response.json()["role"] == "admin"
+
+        status_response = await client.put(
+            f"/api/v1/users/{target_user_id}/status",
+            params={"is_active": False},
+            headers=super_admin_headers,
+        )
+        assert status_response.status_code == 200
+        assert status_response.json()["is_active"] is False
+
+        disabled_login = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "managed@example.com", "password": "testpassword123"},
+        )
+        assert disabled_login.status_code == 401
+        assert "账户已被禁用" in disabled_login.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_member_cannot_use_admin_user_management(self, client: AsyncClient):
+        """普通成员不能访问管理员用户管理接口"""
+        member_token = await self.create_and_login_user(
+            client,
+            username="plainmember",
+            email="plainmember@example.com",
+        )
+        headers = {"Authorization": f"Bearer {member_token}"}
+
+        response = await client.get("/api/v1/users/", headers=headers)
+
+        assert response.status_code == 403
+
 
 class TestTeams:
     """团队管理测试类"""

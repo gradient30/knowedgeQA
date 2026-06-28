@@ -220,6 +220,50 @@ class AuthService:
         await self.db.commit()
         return UserResponse.model_validate(updated_user)
 
+    async def list_users(self, skip: int = 0, limit: int = 20) -> List[UserResponse]:
+        """分页获取用户列表"""
+        result = await self.db.execute(
+            select(User)
+            .order_by(User.created_at.desc(), User.username)
+            .offset(skip)
+            .limit(limit)
+        )
+        return [UserResponse.model_validate(user) for user in result.scalars().all()]
+
+    async def get_user_by_id(self, user_id: UUID) -> UserResponse:
+        """根据 ID 获取用户"""
+        user = await self.db.scalar(select(User).where(User.id == user_id))
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
+        return UserResponse.model_validate(user)
+
+    async def update_user_role(self, user_id: UUID, new_role: UserRole) -> UserResponse:
+        """更新用户角色"""
+        result = await self.db.execute(
+            update(User).where(User.id == user_id).values(role=new_role).returning(User)
+        )
+        updated_user = result.scalar_one_or_none()
+        if not updated_user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
+
+        await self.db.commit()
+        return UserResponse.model_validate(updated_user)
+
+    async def update_user_status(self, user_id: UUID, is_active: bool) -> UserResponse:
+        """启用或禁用用户"""
+        result = await self.db.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(is_active=is_active)
+            .returning(User)
+        )
+        updated_user = result.scalar_one_or_none()
+        if not updated_user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
+
+        await self.db.commit()
+        return UserResponse.model_validate(updated_user)
+
     async def change_password(
         self, user_id: UUID, current_password: str, new_password: str
     ) -> bool:
