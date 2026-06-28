@@ -4,6 +4,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { Card, Tabs, Table, Button, Space, Tag, message, Modal, Image } from 'antd';
 import { DownloadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import FileUpload from '@/components/common/FileUpload/FileUpload';
+import { apiUrl } from '@/lib/api/client';
 
 interface FileInfo {
   id: string;
@@ -35,7 +36,7 @@ const FilesPage: React.FC = () => {
   const fetchFiles = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/v1/files/list', {
+      const response = await fetch(apiUrl('/files/list'), {
         headers: authHeaders(),
       });
 
@@ -58,7 +59,7 @@ const FilesPage: React.FC = () => {
 
   const handleDownload = async (file: FileInfo) => {
     try {
-      const response = await fetch(file.file_url, {
+      const response = await fetch(apiUrl(file.file_url), {
         headers: authHeaders(),
       });
 
@@ -95,7 +96,7 @@ const FilesPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(file.thumbnail_url || file.file_url, {
+      const response = await fetch(apiUrl(file.thumbnail_url || file.file_url), {
         headers: authHeaders(),
       });
 
@@ -121,7 +122,7 @@ const FilesPage: React.FC = () => {
 
   const handleDelete = async (fileId: string) => {
     try {
-      const response = await fetch(`/api/v1/files/${fileId}`, {
+      const response = await fetch(apiUrl(`/files/${fileId}`), {
         method: 'DELETE',
         headers: authHeaders(),
       });

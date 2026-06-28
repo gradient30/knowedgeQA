@@ -48,7 +48,8 @@ for (const page of pages) {
 const filesPagePath = 'frontend/src/app/files/page.tsx';
 const filesPage = fs.readFileSync(path.join(root, filesPagePath), 'utf8');
 for (const marker of [
-  '/api/v1/files/list',
+  "apiUrl('/files/list')",
+  "@/lib/api/client",
   'Authorization',
   'Bearer',
   'URL.createObjectURL',

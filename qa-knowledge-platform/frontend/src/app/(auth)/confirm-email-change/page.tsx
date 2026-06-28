@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, Result, Button, Spin, Alert } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, MailOutlined } from '@ant-design/icons';
+import { apiUrl } from '@/lib/api/client';
 
 function ConfirmEmailChangeContent() {
   const searchParams = useSearchParams();
@@ -21,7 +22,7 @@ function ConfirmEmailChangeContent() {
       }
 
       try {
-        const response = await fetch('/api/v1/users/profile/confirm-email-change', {
+        const response = await fetch(apiUrl('/users/profile/confirm-email-change'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

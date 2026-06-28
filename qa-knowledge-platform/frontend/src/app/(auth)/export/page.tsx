@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, Form, Button, Typography, Select, Checkbox, Alert, Space, Divider, Tag } from 'antd';
 import { DownloadOutlined, FileTextOutlined, DatabaseOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/lib/store/auth';
+import { apiUrl } from '@/lib/api/client';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -62,7 +63,7 @@ export default function DataExportPage() {
       
       setExportProgress('正在生成导出文件...');
       
-      const response = await fetch('/api/v1/users/profile/export-data', {
+      const response = await fetch(apiUrl('/users/profile/export-data'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

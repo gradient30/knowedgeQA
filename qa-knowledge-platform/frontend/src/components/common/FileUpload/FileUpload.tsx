@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Upload, Button, message, Progress, Card, List, Typography } from 'antd';
 import { UploadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
+import { apiUrl } from '@/lib/api/client';
 
 const { Text } = Typography;
 
@@ -49,7 +50,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       setUploading(true);
       setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
 
-      const response = await fetch('/api/v1/files/upload', {
+      const response = await fetch(apiUrl('/files/upload'), {
         method: 'POST',
         body: formData,
         headers: {
@@ -64,11 +65,16 @@ const FileUpload: React.FC<FileUploadProps> = ({
       const result = await response.json();
       
       if (result.success && result.file_info) {
+        const originalName =
+          result.file_info.original_name ||
+          result.file_info.original_filename ||
+          result.file_info.filename;
+        const mimeType = result.file_info.mime_type || result.file_info.file_type;
         const newFile: UploadedFile = {
           id: result.file_info.id,
-          name: result.file_info.original_name,
+          name: originalName,
           size: result.file_info.file_size,
-          type: result.file_info.mime_type,
+          type: mimeType,
           url: result.file_info.file_url,
           thumbnailUrl: result.file_info.thumbnail_url
         };
@@ -101,7 +107,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   const handleRemove = async (fileId: string) => {
     try {
-      const response = await fetch(`/api/v1/files/${fileId}`, {
+      const response = await fetch(apiUrl(`/files/${fileId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -121,7 +127,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   const handlePreview = (file: UploadedFile) => {
     // 在新窗口打开文件
-    window.open(file.url, '_blank');
+    window.open(apiUrl(file.url), '_blank');
   };
 
   const uploadProps: UploadProps = {

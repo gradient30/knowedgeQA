@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, Typography, Alert, Avatar, Upload, Divider, Space, Tag, Modal, message, Select } from 'antd';
 import { UserOutlined, EditOutlined, CameraOutlined, SaveOutlined, LockOutlined, DownloadOutlined, MailOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/lib/store/auth';
+import { apiUrl } from '@/lib/api/client';
 import { UserUpdate } from '@/types/auth.types';
 import type { UploadProps } from 'antd';
 
@@ -87,7 +88,7 @@ export default function ProfilePage() {
       formData.append('file', file as File);
       
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/users/profile/upload-avatar', {
+      const response = await fetch(apiUrl('/users/profile/upload-avatar'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -124,7 +125,7 @@ export default function ProfilePage() {
     setIsChangingPassword(true);
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/users/profile/change-password', {
+      const response = await fetch(apiUrl('/users/profile/change-password'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +157,7 @@ export default function ProfilePage() {
     setIsChangingEmail(true);
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/users/profile/request-email-change', {
+      const response = await fetch(apiUrl('/users/profile/request-email-change'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +186,7 @@ export default function ProfilePage() {
     setIsExporting(true);
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/users/profile/export-data', {
+      const response = await fetch(apiUrl('/users/profile/export-data'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

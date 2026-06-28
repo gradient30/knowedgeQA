@@ -336,6 +336,12 @@ function Run-Tests {
         exit $LASTEXITCODE
     }
 
+    Write-Info '运行真实浏览器端到端验收...'
+    npx --yes --package playwright node scripts/verify-e2e-real-acceptance.js
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+
     Write-Info '运行验收文档门禁...'
     node scripts/verify-core-pages.js
     if ($LASTEXITCODE -ne 0) {

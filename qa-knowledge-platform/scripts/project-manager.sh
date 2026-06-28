@@ -446,6 +446,9 @@ run_tests() {
     log_info "运行SaaS/Game UI验收..."
     run_npx --yes --package playwright node scripts/verify-ui-acceptance.js
 
+    log_info "运行真实浏览器端到端验收..."
+    run_npx --yes --package playwright node scripts/verify-e2e-real-acceptance.js
+
     log_info "运行验收文档门禁..."
     run_node scripts/verify-core-pages.js
     run_node scripts/verify-project-manager-scripts.js

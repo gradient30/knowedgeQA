@@ -4,6 +4,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { Card, Button, Typography, Space, Avatar, Tag, List, Modal, Form, Input, Select, message } from 'antd';
 import { TeamOutlined, UserAddOutlined, UserOutlined, CrownOutlined, EditOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/lib/store/auth';
+import { apiUrl } from '@/lib/api/client';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -50,7 +51,7 @@ export default function TeamsPage() {
 
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/users/profile/team', {
+      const response = await fetch(apiUrl('/users/profile/team'), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -76,7 +77,7 @@ export default function TeamsPage() {
   const handleCreateTeam = async (values: { name: string; description?: string }) => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/users/teams', {
+      const response = await fetch(apiUrl('/users/teams'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +108,7 @@ export default function TeamsPage() {
 
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/users/teams/${team.id}/invite`, {
+      const response = await fetch(apiUrl(`/users/teams/${team.id}/invite`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -135,7 +136,7 @@ export default function TeamsPage() {
 
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/users/teams/${team.id}`, {
+      const response = await fetch(apiUrl(`/users/teams/${team.id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -169,7 +170,7 @@ export default function TeamsPage() {
       onOk: async () => {
         try {
           const token = localStorage.getItem('access_token');
-          const response = await fetch('/api/v1/users/teams/leave', {
+          const response = await fetch(apiUrl('/users/teams/leave'), {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,

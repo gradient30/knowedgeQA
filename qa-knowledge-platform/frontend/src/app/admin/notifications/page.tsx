@@ -26,6 +26,7 @@ import {
   CloseCircleOutlined,
   ExclamationCircleOutlined
 } from '@ant-design/icons';
+import { apiUrl } from '@/lib/api/client';
 
 const { Option } = Select;
 
@@ -99,7 +100,7 @@ const NotificationsPage: React.FC = () => {
   // 获取邮件设置
   const fetchEmailSettings = useCallback(async () => {
     try {
-      const response = await fetch('/api/v1/notifications/email-settings', {
+      const response = await fetch(apiUrl('/notifications/email-settings'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -117,7 +118,7 @@ const NotificationsPage: React.FC = () => {
   // 获取邮件日志
   const fetchEmailLogs = useCallback(async () => {
     try {
-      const response = await fetch('/api/v1/notifications/email-logs', {
+      const response = await fetch(apiUrl('/notifications/email-logs'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -135,7 +136,7 @@ const NotificationsPage: React.FC = () => {
   // 获取邮件模板
   const fetchEmailTemplates = useCallback(async () => {
     try {
-      const response = await fetch('/api/v1/notifications/email-templates', {
+      const response = await fetch(apiUrl('/notifications/email-templates'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -153,7 +154,7 @@ const NotificationsPage: React.FC = () => {
   // 获取SMTP状态
   const fetchSmtpStatus = useCallback(async () => {
     try {
-      const response = await fetch('/api/v1/notifications/smtp-status', {
+      const response = await fetch(apiUrl('/notifications/smtp-status'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -179,7 +180,7 @@ const NotificationsPage: React.FC = () => {
   const handleUpdateSettings = async (values: EmailSettings) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/v1/notifications/email-settings', {
+      const response = await fetch(apiUrl('/notifications/email-settings'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -205,7 +206,7 @@ const NotificationsPage: React.FC = () => {
   const handleSendTestEmail = async (values: TestEmailValues) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/v1/notifications/test-email', {
+      const response = await fetch(apiUrl('/notifications/test-email'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -234,7 +235,7 @@ const NotificationsPage: React.FC = () => {
   const handlePreviewTemplate = async (values: PreviewTemplateValues) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/v1/notifications/preview-template', {
+      const response = await fetch(apiUrl('/notifications/preview-template'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -374,34 +375,52 @@ const NotificationsPage: React.FC = () => {
               layout="vertical"
               onFinish={handleUpdateSettings}
             >
-              <Form.Item name="email_verification" valuePropName="checked">
+              <Form.Item
+                name="email_verification"
+                label="邮箱验证通知"
+                valuePropName="checked"
+              >
                 <Switch checkedChildren="开启" unCheckedChildren="关闭" />
-                <span className="ml-2">邮箱验证通知</span>
               </Form.Item>
               
-              <Form.Item name="password_reset" valuePropName="checked">
+              <Form.Item
+                name="password_reset"
+                label="密码重置通知"
+                valuePropName="checked"
+              >
                 <Switch checkedChildren="开启" unCheckedChildren="关闭" />
-                <span className="ml-2">密码重置通知</span>
               </Form.Item>
               
-              <Form.Item name="welcome_email" valuePropName="checked">
+              <Form.Item
+                name="welcome_email"
+                label="欢迎邮件"
+                valuePropName="checked"
+              >
                 <Switch checkedChildren="开启" unCheckedChildren="关闭" />
-                <span className="ml-2">欢迎邮件</span>
               </Form.Item>
               
-              <Form.Item name="article_comments" valuePropName="checked">
+              <Form.Item
+                name="article_comments"
+                label="文章评论通知"
+                valuePropName="checked"
+              >
                 <Switch checkedChildren="开启" unCheckedChildren="关闭" />
-                <span className="ml-2">文章评论通知</span>
               </Form.Item>
               
-              <Form.Item name="team_invitations" valuePropName="checked">
+              <Form.Item
+                name="team_invitations"
+                label="团队邀请通知"
+                valuePropName="checked"
+              >
                 <Switch checkedChildren="开启" unCheckedChildren="关闭" />
-                <span className="ml-2">团队邀请通知</span>
               </Form.Item>
               
-              <Form.Item name="system_updates" valuePropName="checked">
+              <Form.Item
+                name="system_updates"
+                label="系统更新通知"
+                valuePropName="checked"
+              >
                 <Switch checkedChildren="开启" unCheckedChildren="关闭" />
-                <span className="ml-2">系统更新通知</span>
               </Form.Item>
               
               <Form.Item>
