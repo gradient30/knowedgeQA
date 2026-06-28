@@ -17,6 +17,8 @@ const requiredMarkers = [
   'GET /api/v1/knowledge/articles',
   'GET /api/v1/tools',
   'GET /api/v1/news/items',
+  'node scripts/verify-runtime-acceptance.js',
+  'Runtime Docker acceptance',
   'pnpm build',
 ];
 
@@ -35,6 +37,12 @@ const matrix = fs.readFileSync(
 for (const marker of requiredMarkers) {
   if (!matrix.includes(marker)) {
     throw new Error(`acceptance matrix missing marker: ${marker}`);
+  }
+}
+
+for (const staleMarker of ['Blocked: command not found', 'Docker availability | `docker --version` | Blocked']) {
+  if (matrix.includes(staleMarker)) {
+    throw new Error(`acceptance matrix contains stale blocked evidence: ${staleMarker}`);
   }
 }
 

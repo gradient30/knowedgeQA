@@ -15,9 +15,10 @@ This matrix defines the release evidence for the SaaS and game QA baseline. It m
 ## Release Evidence
 
 - Backend focused suite: `python -m pytest tests/test_taxonomy.py tests/test_knowledge_api.py tests/test_tools_api.py tests/test_news_api.py -q` -> 13 passed.
-- Backend full regression: `python -m pytest tests/ --cov=app -q` -> 52 passed, 67% coverage.
+- Backend full regression: `python -m pytest tests/ --cov=app -q` -> 52 passed, 68% coverage.
 - Frontend static gate: `node scripts/verify-core-pages.js` -> passed.
 - Frontend quality gate: `pnpm type-check`, `pnpm lint`, `pnpm build` -> passed. Lint still reports non-blocking existing `any` and hook dependency warnings.
+- Runtime Docker acceptance: `node scripts/verify-runtime-acceptance.js` -> validates backend health, SaaS/Game seed data, file upload, and frontend routes on the integrated stack.
 - Documentation gate: `node scripts/verify-acceptance-docs.js` must pass before release handoff.
 
 ## Manual Walkthrough
@@ -33,19 +34,19 @@ Use a local dev stack with backend on `8000` and frontend on `3000`.
 
 ## Known Gaps
 
-- Full Docker stack verification depends on local PostgreSQL, Redis, and Docker availability.
-- Final integration gate on this workstation is blocked because `docker --version` is not available and `bash --version` timed out, so `scripts/project-manager.sh start --env dev` cannot run here.
-- End-to-end browser screenshots are not yet attached; add them after a running integrated stack is available.
+- Docker Desktop is required locally. The PowerShell and WSL scripts support the user-level Docker install path when Docker is not on `PATH`.
+- End-to-end browser screenshots are not attached to this matrix; use `node scripts/verify-runtime-acceptance.js` as the repeatable HTTP smoke gate for release handoff.
 - P3 intelligent recommendations require reviewed production content and evaluation datasets before release.
 
-## Final Integration Gate Attempt
+## Final Integration Gate
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Docker availability | `docker --version` | Blocked: command not found. |
-| Bash availability | `bash --version` | Blocked: command timed out in local shell. |
-| Full stack startup | `scripts/project-manager.sh start --env dev` | Not executed because Docker and Bash prerequisites are unavailable. |
+| Docker stack status | `.\scripts\project-manager.ps1 status` | Passed: frontend, backend, PostgreSQL, Redis, Celery worker, and Celery beat are running. |
+| WSL script compatibility | `bash ./scripts/project-manager.sh status` | Passed using the Windows Docker CLI fallback. |
+| Full stack startup | `.\scripts\project-manager.ps1 start -Env dev` | Passed: dev stack starts and initializes. |
+| Runtime Docker acceptance | `node scripts/verify-runtime-acceptance.js` | Passed: health, SaaS/Game APIs, file upload, and core frontend routes. |
 | Backend focused regression | `python -m pytest tests/test_taxonomy.py tests/test_knowledge_api.py tests/test_tools_api.py tests/test_news_api.py -q` | Passed: 13 tests. |
-| Backend full regression | `python -m pytest tests/ --cov=app -q` | Passed: 52 tests, 67% coverage. |
-| Frontend release build | `pnpm build` | Passed with warnings. |
+| Backend full regression | `python -m pytest tests/ --cov=app -q` | Passed: 52 tests, 68% coverage. |
+| Frontend release build | `$docker = Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\resources\bin\docker.exe'; & $docker compose -f docker-compose.dev.yml run --rm --no-deps -e NODE_ENV=production frontend pnpm build` | Passed: 17 static routes generated. |
 | Documentation gate | `node scripts/verify-acceptance-docs.js` | Passed. |
