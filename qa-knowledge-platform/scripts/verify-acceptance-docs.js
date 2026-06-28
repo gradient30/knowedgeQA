@@ -18,7 +18,11 @@ const requiredMarkers = [
   'GET /api/v1/tools',
   'GET /api/v1/news/items',
   'node scripts/verify-runtime-acceptance.js',
+  'npx --yes --package playwright node scripts/verify-ui-acceptance.js',
   'Runtime Docker acceptance',
+  'UI acceptance',
+  'knowledge write flow',
+  'output/acceptance/ui-knowledge.png',
   'pnpm build',
 ];
 

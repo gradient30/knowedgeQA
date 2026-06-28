@@ -1,6 +1,16 @@
 import { apiRequest } from './client';
 import { BusinessDomain, QaNewsItem, QaNewsSource, ReviewStatus } from '@/types/platform.types';
 
+export interface NewsSourceCreatePayload {
+  name: string;
+  url: string;
+  category: QaNewsSource['category'];
+  business_domain: BusinessDomain;
+  keywords: string[];
+  frequency_hours: number;
+  is_active: boolean;
+}
+
 export function listNewsItems(params: {
   business_domain?: BusinessDomain;
   review_status?: ReviewStatus;
@@ -15,4 +25,11 @@ export function listNewsSources(businessDomain?: BusinessDomain) {
   const query = new URLSearchParams();
   if (businessDomain) query.set('business_domain', businessDomain);
   return apiRequest<QaNewsSource[]>(`/news/sources?${query.toString()}`);
+}
+
+export function createNewsSource(payload: NewsSourceCreatePayload) {
+  return apiRequest<QaNewsSource>('/news/sources', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }

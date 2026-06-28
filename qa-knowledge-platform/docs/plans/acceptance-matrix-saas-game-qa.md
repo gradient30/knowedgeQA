@@ -18,7 +18,9 @@ This matrix defines the release evidence for the SaaS and game QA baseline. It m
 - Backend full regression: `python -m pytest tests/ --cov=app -q` -> 52 passed, 68% coverage.
 - Frontend static gate: `node scripts/verify-core-pages.js` -> passed.
 - Frontend quality gate: `pnpm type-check`, `pnpm lint`, `pnpm build` -> passed. Lint still reports non-blocking existing `any` and hook dependency warnings.
-- Runtime Docker acceptance: `node scripts/verify-runtime-acceptance.js` -> validates backend health, SaaS/Game seed data, file upload, and frontend routes on the integrated stack.
+- Runtime Docker acceptance: `node scripts/verify-runtime-acceptance.js` -> validates backend health, SaaS/Game seed data, file upload, knowledge write flow, tool rating/favorite/usage flow, news source governance, and frontend routes on the integrated stack.
+- UI acceptance: `npx --yes --package playwright node scripts/verify-ui-acceptance.js` -> validates `/knowledge`, `/tools`, and `/news` render live API data, filter by SaaS/Game, and open create/configuration forms in a browser.
+- UI screenshot evidence: `output/acceptance/ui-knowledge.png`, `output/acceptance/ui-tools.png`, `output/acceptance/ui-news.png`.
 - Documentation gate: `node scripts/verify-acceptance-docs.js` must pass before release handoff.
 
 ## Manual Walkthrough
@@ -35,7 +37,7 @@ Use a local dev stack with backend on `8000` and frontend on `3000`.
 ## Known Gaps
 
 - Docker Desktop is required locally. The PowerShell and WSL scripts support the user-level Docker install path when Docker is not on `PATH`.
-- End-to-end browser screenshots are not attached to this matrix; use `node scripts/verify-runtime-acceptance.js` as the repeatable HTTP smoke gate for release handoff.
+- Article-to-file attachment linking is not implemented in V1.0; file evidence is uploaded through the file center and referenced as acceptance evidence.
 - P3 intelligent recommendations require reviewed production content and evaluation datasets before release.
 
 ## Final Integration Gate
@@ -43,10 +45,11 @@ Use a local dev stack with backend on `8000` and frontend on `3000`.
 | Check | Command | Result |
 | --- | --- | --- |
 | Docker stack status | `.\scripts\project-manager.ps1 status` | Passed: frontend, backend, PostgreSQL, Redis, Celery worker, and Celery beat are running. |
-| WSL script compatibility | `bash ./scripts/project-manager.sh status` | Passed using the Windows Docker CLI fallback. |
+| WSL script compatibility | `wsl bash ./scripts/project-manager.sh test` | Passed using Windows Docker and Node fallbacks. |
 | Full stack startup | `.\scripts\project-manager.ps1 start -Env dev` | Passed: dev stack starts and initializes. |
-| Runtime Docker acceptance | `node scripts/verify-runtime-acceptance.js` | Passed: health, SaaS/Game APIs, file upload, and core frontend routes. |
+| Runtime Docker acceptance | `node scripts/verify-runtime-acceptance.js` | Passed: health, SaaS/Game APIs, file upload, knowledge write flow, tool create/delete/rate/favorite/usage, news source CRUD, news publish/reject, and core frontend routes. |
+| UI acceptance | `npx --yes --package playwright node scripts/verify-ui-acceptance.js` | Passed: live API data rendered, SaaS/Game filters worked, and create/configuration forms opened on knowledge, tools, and news pages. |
 | Backend focused regression | `python -m pytest tests/test_taxonomy.py tests/test_knowledge_api.py tests/test_tools_api.py tests/test_news_api.py -q` | Passed: 13 tests. |
 | Backend full regression | `python -m pytest tests/ --cov=app -q` | Passed: 52 tests, 68% coverage. |
-| Frontend release build | `$docker = Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\resources\bin\docker.exe'; & $docker compose -f docker-compose.dev.yml run --rm --no-deps -e NODE_ENV=production frontend pnpm build` | Passed: 17 static routes generated. |
+| Frontend release build | Stop `frontend`, run `$docker compose -f docker-compose.dev.yml run --rm --no-deps -e NODE_ENV=production -e NEXT_TELEMETRY_DISABLED=1 frontend sh -lc "rm -rf .next && pnpm build"`, then start `frontend`. | Passed: 17 static routes generated without `.next` contention. |
 | Documentation gate | `node scripts/verify-acceptance-docs.js` | Passed. |

@@ -33,6 +33,8 @@ log_error() {
 
 DOCKER_COMMAND=()
 COMPOSE_COMMAND=()
+NODE_COMMAND=()
+NPX_COMMAND=()
 
 detect_docker() {
     if [ ${#DOCKER_COMMAND[@]} -gt 0 ]; then
@@ -97,6 +99,70 @@ run_compose() {
 run_docker() {
     detect_docker
     "${DOCKER_COMMAND[@]}" "$@"
+}
+
+detect_node() {
+    if [ ${#NODE_COMMAND[@]} -gt 0 ]; then
+        return
+    fi
+
+    if command -v node &> /dev/null; then
+        NODE_COMMAND=(node)
+        return
+    fi
+
+    local node_candidates=(
+        "/mnt/c/nvm4w/nodejs/node.exe"
+        "/mnt/c/Program Files/nodejs/node.exe"
+    )
+
+    for candidate in "${node_candidates[@]}"; do
+        if [ -x "$candidate" ]; then
+            NODE_COMMAND=("$candidate")
+            log_warning "Node 未加入 WSL PATH，改用: $candidate"
+            return
+        fi
+    done
+
+    log_error "Node.js 不可用。请安装 Node.js，或将 Windows node.exe 加入 WSL PATH。"
+    exit 1
+}
+
+detect_npx() {
+    if [ ${#NPX_COMMAND[@]} -gt 0 ]; then
+        return
+    fi
+
+    if command -v npx &> /dev/null; then
+        NPX_COMMAND=(npx)
+        return
+    fi
+
+    local npx_candidates=(
+        "/mnt/c/nvm4w/nodejs/npx.cmd"
+        "/mnt/c/Program Files/nodejs/npx.cmd"
+    )
+
+    for candidate in "${npx_candidates[@]}"; do
+        if [ -f "$candidate" ]; then
+            NPX_COMMAND=("$candidate")
+            log_warning "npx 未加入 WSL PATH，改用: $candidate"
+            return
+        fi
+    done
+
+    log_error "npx 不可用。请安装 Node.js/npm。"
+    exit 1
+}
+
+run_node() {
+    detect_node
+    "${NODE_COMMAND[@]}" "$@"
+}
+
+run_npx() {
+    detect_npx
+    "${NPX_COMMAND[@]}" "$@"
 }
 
 # 显示帮助信息
@@ -318,6 +384,16 @@ run_tests() {
 
     log_info "运行前端 lint..."
     run_compose -f docker-compose.dev.yml exec frontend pnpm lint
+
+    log_info "运行SaaS/Game运行态验收..."
+    run_node scripts/verify-runtime-acceptance.js
+
+    log_info "运行SaaS/Game UI验收..."
+    run_npx --yes --package playwright node scripts/verify-ui-acceptance.js
+
+    log_info "运行验收文档门禁..."
+    run_node scripts/verify-core-pages.js
+    run_node scripts/verify-acceptance-docs.js
     
     log_success "测试完成"
 }

@@ -255,6 +255,28 @@ function Run-Tests {
 
     Write-Info '运行前端 lint...'
     Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('exec', 'frontend', 'pnpm', 'lint')
+
+    Write-Info '运行SaaS/Game运行态验收...'
+    node scripts/verify-runtime-acceptance.js
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+
+    Write-Info '运行SaaS/Game UI验收...'
+    npx --yes --package playwright node scripts/verify-ui-acceptance.js
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+
+    Write-Info '运行验收文档门禁...'
+    node scripts/verify-core-pages.js
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+    node scripts/verify-acceptance-docs.js
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
     Write-Success '测试完成'
 }
 

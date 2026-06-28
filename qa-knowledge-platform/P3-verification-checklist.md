@@ -136,7 +136,7 @@
 
 ## SaaS/Game Baseline Acceptance
 
-- [ ] User profile specialties include API, automation, performance, security, game, and DevOps QA contexts.
+- [x] User profile specialties include API, automation, performance, security, game, and DevOps QA contexts.
 - [ ] Future intelligent recommendations only use reviewed SaaS/game content with source links.
 - [ ] P3 release requires a curated dataset for similar article, similar bug, tool recommendation, and news summary evaluation.
 - Evidence commands: `python -m pytest tests/test_taxonomy.py -q`, `node scripts/verify-acceptance-docs.js`.
