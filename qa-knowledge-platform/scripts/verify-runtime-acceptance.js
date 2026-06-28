@@ -101,9 +101,10 @@ async function verifyFileUpload() {
   const files = await readJson(`${backendUrl}/api/v1/files/list`);
   assert(files.total >= 1, `file list expected at least 1 item, got ${files.total}`);
   console.log(`file upload: success, listed files ${files.total}`);
+  return upload.file_info.id;
 }
 
-async function verifyKnowledgeWriteFlow() {
+async function verifyKnowledgeWriteFlow(attachmentFileId) {
   const categories = await readJson(
     `${backendUrl}/api/v1/knowledge/categories?business_domain=saas`
   );
@@ -123,7 +124,13 @@ async function verifyKnowledgeWriteFlow() {
       visibility: 'team',
       project_key: 'runtime-acceptance',
       tags: ['runtime', 'saas'],
+      attachment_file_ids: [attachmentFileId],
     })
+  );
+  assert.deepStrictEqual(
+    article.attachment_file_ids,
+    [attachmentFileId],
+    'created article must link uploaded evidence file'
   );
 
   const updated = await readJson(
@@ -135,6 +142,14 @@ async function verifyKnowledgeWriteFlow() {
   );
   assert.strictEqual(updated.summary, 'updated runtime acceptance evidence');
   assert.strictEqual(updated.review_status, 'approved');
+  assert.deepStrictEqual(updated.attachment_file_ids, [attachmentFileId]);
+
+  const detail = await readJson(`${backendUrl}/api/v1/knowledge/articles/${article.id}`);
+  assert.deepStrictEqual(
+    detail.attachment_file_ids,
+    [attachmentFileId],
+    'article detail must return linked evidence file'
+  );
 
   const search = await readJson(
     `${backendUrl}/api/v1/knowledge/search?q=${encodeURIComponent(marker)}&business_domain=saas`
@@ -144,7 +159,7 @@ async function verifyKnowledgeWriteFlow() {
   await readJson(`${backendUrl}/api/v1/knowledge/articles/${article.id}`, {
     method: 'DELETE',
   });
-  console.log('knowledge write flow: create, approve, update, search, delete');
+  console.log('knowledge write flow: create with evidence file, approve, update, search, delete');
 }
 
 async function verifyToolsWriteFlow() {
@@ -228,6 +243,72 @@ async function verifyNewsWriteFlow() {
   console.log('news write flow: source create, update, delete, publish, reject');
 }
 
+async function verifyIntelligenceFlow() {
+  const gameCategories = await readJson(
+    `${backendUrl}/api/v1/knowledge/categories?business_domain=game`
+  );
+  assert(gameCategories.length > 0, 'Game knowledge category is required');
+  const gameMarker = `运行态验收游戏相似文章 ${Date.now()}`;
+  const gameArticle = await readJson(
+    `${backendUrl}/api/v1/knowledge/articles`,
+    writeJson('POST', {
+      category_id: gameCategories[0].id,
+      user_id: acceptanceUserId,
+      title: gameMarker,
+      summary: '游戏弱网与提审质量风险',
+      content: '验证相似文章只能使用已审核游戏知识。',
+      type: 'Bug案例',
+      business_domain: 'game',
+      visibility: 'team',
+      project_key: 'runtime-acceptance-game',
+      tags: ['runtime', 'game'],
+      attachment_file_ids: [],
+    })
+  );
+  await readJson(
+    `${backendUrl}/api/v1/knowledge/articles/${gameArticle.id}`,
+    writeJson('PUT', { review_status: 'approved' })
+  );
+
+  const similarArticles = await readJson(
+    `${backendUrl}/api/v1/intelligence/similar-articles?business_domain=saas&q=${encodeURIComponent('灰度')}`
+  );
+  assert(similarArticles.length > 0, 'similar articles must use reviewed content');
+  assert(
+    similarArticles.every((item) => item.source_links?.[0]?.startsWith('/api/v1/knowledge/articles/')),
+    'similar articles must include source links'
+  );
+  const gameSimilarArticles = await readJson(
+    `${backendUrl}/api/v1/intelligence/similar-articles?business_domain=game&q=${encodeURIComponent('弱网')}`
+  );
+  assert(
+    gameSimilarArticles.some((item) => item.id === gameArticle.id),
+    'game similar articles must use reviewed game content'
+  );
+
+  const toolRecommendations = await readJson(
+    `${backendUrl}/api/v1/intelligence/tool-recommendations?business_domain=saas&q=API`
+  );
+  assert(toolRecommendations.length > 0, 'tool recommendations must use recommended tools');
+  assert(
+    toolRecommendations.every((item) => item.source_links?.[0]?.startsWith('/api/v1/tools/')),
+    'tool recommendations must include source links'
+  );
+
+  const newsSummary = await readJson(
+    `${backendUrl}/api/v1/intelligence/news-summary?business_domain=saas&limit=3`
+  );
+  assert(newsSummary.item_count > 0, 'news summary must use reviewed news');
+  assert(
+    newsSummary.source_links.every((link) => link.startsWith('/api/v1/news/items/')),
+    'news summary must include source links'
+  );
+  await readJson(`${backendUrl}/api/v1/knowledge/articles/${gameArticle.id}`, {
+    method: 'DELETE',
+  });
+  console.log('intelligence flow: similar articles, tool recommendations, source-backed news summary');
+}
+
 async function verifyFrontendRoutes() {
   for (const route of frontendRoutes) {
     const response = await fetch(`${frontendUrl}${route}`);
@@ -242,10 +323,11 @@ async function verifyFrontendRoutes() {
 async function main() {
   await verifyHealth();
   await verifyApiData();
-  await verifyFileUpload();
-  await verifyKnowledgeWriteFlow();
+  const attachmentFileId = await verifyFileUpload();
+  await verifyKnowledgeWriteFlow(attachmentFileId);
   await verifyToolsWriteFlow();
   await verifyNewsWriteFlow();
+  await verifyIntelligenceFlow();
   await verifyFrontendRoutes();
   console.log('Runtime Docker acceptance passed.');
 }

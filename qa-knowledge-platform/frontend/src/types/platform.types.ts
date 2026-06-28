@@ -13,6 +13,7 @@ export interface QaArticle {
   review_status: ReviewStatus;
   project_key?: string;
   tags: string[];
+  attachment_file_ids: string[];
 }
 
 export interface QaCategory {

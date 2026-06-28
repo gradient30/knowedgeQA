@@ -10,6 +10,7 @@ from app.modules.knowledge.api import get_knowledge_service, router
 class FakeKnowledgeService:
     def __init__(self):
         self.article_id = uuid.uuid4()
+        self.file_id = uuid.uuid4()
         self.deleted_ids = []
 
     async def list_articles(self, **filters):
@@ -27,6 +28,7 @@ class FakeKnowledgeService:
                 "review_status": "approved",
                 "project_key": "crm-saas",
                 "tags": ["灰度", "SLA"],
+                "attachment_file_ids": [self.file_id],
             }
         ]
 
@@ -49,6 +51,7 @@ class FakeKnowledgeService:
             "review_status": "approved",
             "project_key": "moba-1.2.0",
             "tags": ["提审", "兼容"],
+            "attachment_file_ids": [self.file_id],
         }
 
     async def update_article(self, article_id, payload):
@@ -63,6 +66,7 @@ class FakeKnowledgeService:
             "review_status": "pending",
             "project_key": "moba-1.2.1",
             "tags": ["性能"],
+            "attachment_file_ids": payload.attachment_file_ids or [],
         }
 
     async def delete_article(self, article_id):
@@ -83,6 +87,7 @@ class FakeKnowledgeService:
                 "review_status": "approved",
                 "project_key": "moba-network",
                 "tags": ["弱网"],
+                "attachment_file_ids": [],
             }
         ]
 
@@ -144,22 +149,30 @@ async def test_create_detail_update_delete_article_flow(app_with_fake_service):
                 "visibility": "team",
                 "project_key": "moba-1.2.1",
                 "tags": ["性能", "帧率"],
+                "attachment_file_ids": [str(service.file_id)],
             },
         )
         article_id = create_response.json()["id"]
         detail_response = await client.get(f"/knowledge/articles/{article_id}")
         update_response = await client.put(
             f"/knowledge/articles/{article_id}",
-            json={"title": "游戏性能压测记录-更新", "visibility": "public"},
+            json={
+                "title": "游戏性能压测记录-更新",
+                "visibility": "public",
+                "attachment_file_ids": [],
+            },
         )
         delete_response = await client.delete(f"/knowledge/articles/{article_id}")
 
     assert create_response.status_code == 201
     assert create_response.json()["review_status"] == "pending"
+    assert create_response.json()["attachment_file_ids"] == [str(service.file_id)]
     assert detail_response.status_code == 200
     assert detail_response.json()["business_domain"] == "game"
+    assert detail_response.json()["attachment_file_ids"] == [str(service.file_id)]
     assert update_response.status_code == 200
     assert update_response.json()["visibility"] == "public"
+    assert update_response.json()["attachment_file_ids"] == []
     assert delete_response.status_code == 200
     assert service.deleted_ids == [uuid.UUID(article_id)]
 

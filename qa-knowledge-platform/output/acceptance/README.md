@@ -16,4 +16,4 @@ Screenshot evidence:
 - `output/acceptance/ui-tools.png`
 - `output/acceptance/ui-news.png`
 
-The runtime gate verifies live backend health, SaaS/Game seed data, file upload, knowledge create/approve/update/search/delete, tool create/delete/rate/favorite/usage, news source CRUD, news publish/reject, and frontend route availability.
+The runtime gate verifies live backend health, SaaS/Game seed data, file upload, knowledge create with linked evidence file/approve/update/search/delete, tool create/delete/rate/favorite/usage, news source CRUD, news publish/reject, source-backed intelligence flow, and frontend route availability.

@@ -33,6 +33,7 @@ class ArticleBase(BaseModel):
     visibility: Visibility = Visibility.TEAM
     project_key: Optional[str] = Field(None, max_length=100)
     tags: List[str] = Field(default_factory=list)
+    attachment_file_ids: List[UUID] = Field(default_factory=list)
 
 
 class ArticleCreate(ArticleBase):
@@ -51,6 +52,7 @@ class ArticleUpdate(BaseModel):
     review_status: Optional[ReviewStatus] = None
     project_key: Optional[str] = Field(None, max_length=100)
     tags: Optional[List[str]] = None
+    attachment_file_ids: Optional[List[UUID]] = None
 
 
 class ArticleResponse(ArticleBase):

@@ -12,6 +12,7 @@ export interface ArticleCreatePayload {
   visibility: Visibility;
   project_key?: string;
   tags: string[];
+  attachment_file_ids: string[];
 }
 
 export function listArticles(params: {

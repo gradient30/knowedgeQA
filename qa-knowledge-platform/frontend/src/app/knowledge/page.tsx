@@ -17,6 +17,7 @@ interface KnowledgeFormValues {
   business_domain: BusinessDomain;
   project_key?: string;
   tags?: string;
+  attachment_file_ids?: string;
 }
 
 const domainLabel: Record<BusinessDomain, string> = {
@@ -92,6 +93,9 @@ export default function KnowledgePage() {
         visibility: 'team',
         project_key: values.project_key,
         tags: values.tags ? values.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : [],
+        attachment_file_ids: values.attachment_file_ids
+          ? values.attachment_file_ids.split(',').map((fileId) => fileId.trim()).filter(Boolean)
+          : [],
       });
       const items = await listArticles({
         business_domain: businessDomain === 'all' ? undefined : businessDomain,
@@ -136,6 +140,12 @@ export default function KnowledgePage() {
       title: '标签',
       dataIndex: 'tags',
       render: (tags: string[]) => tags.map((tag) => <Tag key={tag}>{tag}</Tag>),
+    },
+    {
+      title: '附件',
+      dataIndex: 'attachment_file_ids',
+      width: 90,
+      render: (fileIds: string[]) => <Tag color={fileIds.length > 0 ? 'green' : 'default'}>{fileIds.length}</Tag>,
     },
   ];
 
@@ -209,6 +219,9 @@ export default function KnowledgePage() {
           </Form.Item>
           <Form.Item name="tags" label="标签">
             <Input placeholder="用英文逗号分隔，例如：回归,SLA,弱网" />
+          </Form.Item>
+          <Form.Item name="attachment_file_ids" label="附件文件 ID">
+            <Input placeholder="上传证据文件后填入 ID，多个用英文逗号分隔" />
           </Form.Item>
           <Form.Item name="content" label="内容" rules={[{ required: true }]}>
             <TextArea rows={6} />

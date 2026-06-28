@@ -6,6 +6,7 @@ from app.modules.tools.api import router as tools_router
 from app.modules.news.api import router as news_router
 from app.modules.files.api import router as files_router
 from app.modules.notifications.api import router as notifications_router
+from app.modules.intelligence.api import router as intelligence_router
 
 api_router = APIRouter()
 
@@ -19,6 +20,7 @@ api_router.include_router(tools_router, prefix="/tools", tags=["工具库"])
 api_router.include_router(news_router, prefix="/news", tags=["资讯"])
 api_router.include_router(files_router, prefix="/files", tags=["文件管理"])
 api_router.include_router(notifications_router, prefix="/notifications", tags=["邮件通知"])
+api_router.include_router(intelligence_router, prefix="/intelligence", tags=["智能辅助"])
 
 # 兼容早期前端和测试使用的顶层团队路径，例如 /api/v1/teams。
 api_router.include_router(teams_router, prefix="", tags=["团队管理兼容"])

@@ -81,7 +81,7 @@
 
 ## SaaS/Game Baseline Acceptance
 
-- [x] SaaS API compatibility article can be created and reviewed with `business_domain=saas`; evidence files can be uploaded through the file center.
-- [x] Game version report can be created with `business_domain=game`; device matrix, FPS logs, or weak-network evidence can be uploaded through the file center.
+- [x] SaaS API compatibility article can be created and reviewed with `business_domain=saas`, and can link uploaded evidence file IDs.
+- [x] Game version report can be created with `business_domain=game`; device matrix, FPS logs, or weak-network evidence can be linked by uploaded file ID.
 - [x] Knowledge, tools, and news pages expose SaaS/game filters and no placeholder copy.
 - Evidence commands: `node scripts/verify-core-pages.js`, `node scripts/verify-runtime-acceptance.js`, `npx --yes --package playwright node scripts/verify-ui-acceptance.js`, `pnpm type-check`, `pnpm build`.

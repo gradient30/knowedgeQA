@@ -22,6 +22,9 @@ const requiredMarkers = [
   'Runtime Docker acceptance',
   'UI acceptance',
   'knowledge write flow',
+  'create with evidence file',
+  'intelligence flow',
+  'source-backed news summary',
   'output/acceptance/ui-knowledge.png',
   'pnpm build',
 ];

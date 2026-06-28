@@ -55,7 +55,12 @@ class KnowledgeService:
             visibility=payload.visibility,
             review_status=ReviewStatus.PENDING,
             project_key=payload.project_key,
-            extra_data={"tags": payload.tags},
+            extra_data={
+                "tags": payload.tags,
+                "attachment_file_ids": [
+                    str(file_id) for file_id in payload.attachment_file_ids
+                ],
+            },
         )
         self.session.add(article)
         await self.session.commit()
@@ -77,11 +82,17 @@ class KnowledgeService:
 
         updates = payload.model_dump(exclude_unset=True)
         tags = updates.pop("tags", None)
+        attachment_file_ids = updates.pop("attachment_file_ids", None)
         for key, value in updates.items():
             setattr(article, key, value)
-        if tags is not None:
+        if tags is not None or attachment_file_ids is not None:
             extra_data = dict(article.extra_data or {})
-            extra_data["tags"] = tags
+            if tags is not None:
+                extra_data["tags"] = tags
+            if attachment_file_ids is not None:
+                extra_data["attachment_file_ids"] = [
+                    str(file_id) for file_id in attachment_file_ids
+                ]
             article.extra_data = extra_data
 
         await self.session.commit()
@@ -154,4 +165,5 @@ class KnowledgeService:
             review_status=article.review_status,
             project_key=article.project_key,
             tags=extra_data.get("tags", []),
+            attachment_file_ids=extra_data.get("attachment_file_ids", []),
         )
