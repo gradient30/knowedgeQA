@@ -1,34 +1,34 @@
-# Operations
+# 运维说明
 
-This document defines routine checks and release operations for the current project.
+本文定义当前项目的日常检查、发布和回滚操作。
 
-## Health Checks
+## 健康检查
 
-Backend:
+后端：
 
 ```bash
 curl -f http://localhost:8000/health
 curl -f http://localhost:8000/health/detailed
 ```
 
-Frontend:
+前端：
 
 ```bash
 curl -f http://localhost:3000
 ```
 
-Docker:
+Docker：
 
 ```bash
 docker compose -f docker-compose.dev.yml ps
 docker compose --env-file .env.prod -f docker-compose.prod.yml ps
 ```
 
-`/health/detailed` checks PostgreSQL, Redis, Celery visibility, and host system information.
+`/health/detailed` 会检查 PostgreSQL、Redis、Celery 可见性和主机系统信息。
 
-## Logs
+## 日志
 
-Development:
+开发环境：
 
 ```powershell
 .\scripts\project-manager.ps1 logs -Service backend -Follow
@@ -38,84 +38,84 @@ Development:
 bash ./scripts/project-manager.sh logs --service backend --follow
 ```
 
-Production:
+生产环境：
 
 ```bash
 docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail=200 backend
 docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f celery-worker
 ```
 
-## Release Checklist
+## 发布检查清单
 
-Before merging or deploying shared behavior:
+合并或部署共享行为前执行：
 
 ```powershell
 .\scripts\project-manager.ps1 test
 ```
 
-or:
+或：
 
 ```bash
 bash ./scripts/project-manager.sh test
 ```
 
-For production release:
+生产发布步骤：
 
-1. Confirm `git status --short` is clean.
-2. Build production images.
-3. Back up PostgreSQL and uploads.
-4. Run Alembic migrations.
-5. Start services.
-6. Verify `/health`, frontend page load, logs, and key authenticated flows.
+1. 确认 `git status --short` 为空。
+2. 构建生产镜像。
+3. 备份 PostgreSQL 和上传文件。
+4. 执行 Alembic 迁移。
+5. 启动服务。
+6. 验证 `/health`、前端页面、日志和关键认证流程。
 
-## Database Operations
+## 数据库操作
 
-Current migration head:
+查看当前迁移头：
 
 ```bash
 docker compose -f docker-compose.dev.yml exec backend poetry run alembic heads
 ```
 
-Apply migrations:
+执行迁移：
 
 ```bash
 docker compose -f docker-compose.dev.yml exec backend poetry run alembic upgrade head
 ```
 
-Production:
+生产环境：
 
 ```bash
 docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm backend \
   poetry run alembic upgrade head
 ```
 
-## Backup Targets
+## 备份对象
 
-Back up these production assets:
+生产环境需要备份：
 
-- PostgreSQL database.
-- `prod_uploads` volume.
-- `.env.prod` in a secure secret manager.
-- Reverse proxy TLS configuration.
-- SMTP and external service credentials stored outside Git.
+- PostgreSQL 数据库。
+- `prod_uploads` 卷。
+- 安全保存的 `.env.prod`。
+- 反向代理 TLS 配置。
+- 存储在 Git 外部的 SMTP 和外部服务凭据。
 
-## Rollback
+## 回滚
 
-Application rollback:
+应用回滚：
 
-1. Check out the previous Git commit.
-2. Rebuild images.
-3. Restart services with `docker compose up -d`.
-4. Verify health and logs.
+1. 切回上一个 Git 提交。
+2. 重新构建镜像。
+3. 使用 `docker compose up -d` 重启服务。
+4. 验证健康检查和日志。
 
-Database rollback is migration-specific. Do not downgrade a production database without a tested rollback plan and a fresh backup.
+数据库回滚取决于具体迁移。没有经过测试的回滚方案和最新备份时，不要降级生产数据库。
 
-## Incident Triage
+## 故障处理
 
-Use audit logs and application logs together:
+同时使用审计日志和应用日志定位问题：
 
-- API and middleware logs identify request failures.
-- Audit logs identify domain changes for knowledge, news, tools, and administration.
-- Notification logs identify email template and delivery attempts.
+- API 与中间件日志用于定位请求失败。
+- 审计日志用于定位知识库、资讯、工具和管理操作变更。
+- 通知日志用于定位邮件模板和发送尝试。
 
-Escalate production issues when authentication, private files, admin governance, or migrations are affected.
+涉及认证、私有文件、管理员治理或迁移的问题应优先升级处理。

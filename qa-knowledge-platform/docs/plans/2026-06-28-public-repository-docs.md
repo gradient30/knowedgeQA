@@ -1,63 +1,66 @@
-# Public Repository Documentation Implementation Plan
+# 公共仓库文档实施计划
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **给 Claude：** 必须使用 superpowers:executing-plans 按任务执行本计划。
 
-**Goal:** Create public GitHub-ready documentation and real dev/prod deployment instructions for the QA knowledge platform.
+**目标：** 为 QA 知识协作平台补齐适合 GitHub 公共仓库的 README、部署、架构、运维、安全和技术路线文档。
 
-**Architecture:** The documentation must describe the current Next.js frontend, FastAPI backend, PostgreSQL, Redis, Celery, Docker, and acceptance gates. Production deployment must be backed by committed deployment artifacts instead of referencing nonexistent compose files.
+**架构：** 文档必须描述当前真实的 Next.js 前端、FastAPI 后端、PostgreSQL、Redis、Celery、Docker 和验收门禁。生产部署必须由仓库内已提交的部署文件支撑，不能引用不存在的 Compose 文件或未实现能力。
 
-**Tech Stack:** Markdown, Docker Compose, Next.js 14, FastAPI, PostgreSQL 15, Redis 7, Celery, Poetry, pnpm.
+**技术栈：** Markdown、Docker Compose、Next.js 14、FastAPI、PostgreSQL 15、Redis 7、Celery、Poetry、pnpm。
 
 ---
 
-### Task 1: Public Repository README
+### 任务 1：公共仓库 README
 
-**Files:**
-- Modify: `README.md`
+**文件：**
+- 修改：`README.md`
 
-**Steps:**
-1. Replace the legacy README with a concise public repository overview.
-2. Include real quick-start commands for PowerShell and WSL.
-3. Link to deployment, architecture, security, operations, and roadmap docs.
-4. Avoid claiming unsupported staging deployment or undeclared license terms.
+**步骤：**
+1. 用清晰的公共仓库说明替换旧 README。
+2. 写明 PowerShell 与 WSL 的真实快速启动命令。
+3. 链接部署、架构、安全、运维和路线图文档。
+4. 不声明仓库中不存在的 staging 部署或许可证。
 
-### Task 2: Deployable Dev and Prod Artifacts
+### 任务 2：可部署的开发与生产文件
 
-**Files:**
-- Create: `frontend/Dockerfile`
-- Create: `backend/Dockerfile`
-- Create: `docker-compose.prod.yml`
-- Create: `.env.prod.example`
+**文件：**
+- 创建：`frontend/Dockerfile`
+- 创建：`backend/Dockerfile`
+- 创建：`docker-compose.prod.yml`
+- 创建：`.env.prod.example`
 
-**Steps:**
-1. Add production Dockerfiles without hot reload.
-2. Add a single-host production Compose file using explicit environment variables.
-3. Add an example production env file with placeholders only.
-4. Validate Compose syntax with `docker compose --env-file .env.prod.example -f docker-compose.prod.yml config`.
+**步骤：**
+1. 增加无热重载的生产 Dockerfile。
+2. 增加单机生产 Compose 文件，显式使用环境变量。
+3. 增加只含占位值的生产环境变量示例。
+4. 使用 `docker compose --env-file .env.prod.example -f docker-compose.prod.yml config` 校验配置。
+5. 使用 `docker compose --env-file .env.prod.example -f docker-compose.prod.yml build` 校验生产镜像构建。
 
-### Task 3: Standard Documentation Set
+### 任务 3：标准文档集
 
-**Files:**
-- Create: `docs/deployment/dev.md`
-- Create: `docs/deployment/prod.md`
-- Create: `docs/architecture.md`
-- Create: `docs/operations.md`
-- Create: `docs/security.md`
-- Create: `docs/technical-roadmap.md`
+**文件：**
+- 创建：`docs/deployment/dev.md`
+- 创建：`docs/deployment/prod.md`
+- 创建：`docs/architecture.md`
+- 创建：`docs/operations.md`
+- 创建：`docs/security.md`
+- 创建：`docs/technical-roadmap.md`
 
-**Steps:**
-1. Document development deployment from the existing dev Compose and scripts.
-2. Document production deployment from the new production artifacts.
-3. Describe architecture, module ownership, data flow, operational checks, and security posture.
-4. Keep claims aligned with current acceptance matrix and known gaps.
+**步骤：**
+1. 基于现有 dev Compose 和脚本说明开发环境部署。
+2. 基于生产 Dockerfile、Compose 和 env 示例说明生产部署。
+3. 描述架构、模块边界、数据流、运维检查和安全基线。
+4. 内容必须与当前验收矩阵和已知缺口一致。
+5. 将相关 Markdown 文档统一汉化。
 
-### Task 4: Verification and Commit
+### 任务 4：验证与提交
 
-**Files:**
-- Verify all changed docs and deployment artifacts.
+**文件：**
+- 验证全部文档和部署文件。
 
-**Steps:**
-1. Run documentation gate: `node scripts/verify-acceptance-docs.js`.
-2. Run production Compose config validation.
-3. Run `git diff --check`.
-4. Stage, commit, and push with a docs-scoped Conventional Commit.
+**步骤：**
+1. 运行文档门禁：`node scripts/verify-acceptance-docs.js`。
+2. 运行生产 Compose 配置校验。
+3. 运行生产镜像构建。
+4. 运行 `git diff --check`。
+5. 暂存、提交并推送文档和部署修复。

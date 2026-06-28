@@ -4,11 +4,7 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV POETRY_VERSION=1.8.5
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc g++ curl \
-    && rm -rf /var/lib/apt/lists/*
+ENV POETRY_VERSION=2.2.1
 
 RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}" \
     && poetry config virtualenvs.create false

@@ -1,46 +1,47 @@
-# QA Knowledge Platform
+# QA 知识协作平台
 
-QA Knowledge Platform is a full-stack collaboration platform for quality engineering teams working across SaaS and game businesses. It provides knowledge articles, evidence files, tool governance, QA news intelligence, notifications, audit logs, and administrator workflows.
+QA 知识协作平台是一个面向 SaaS 与游戏质量工程团队的全栈协作系统，覆盖知识文章、证据文件、测试工具治理、QA 资讯情报、通知、审计日志和管理员工作流。
 
-The project is built as a practical baseline for large internet-style QA operations. It is not affiliated with Tencent, NetEase, or any other company.
+本项目定位为大厂级互联网 QA 业务的工程化基线示例，不隶属于腾讯、网易或任何第三方公司。
 
-## Current Status
+## 当前状态
 
-The repository has passed the local Docker acceptance baseline documented in [`docs/plans/acceptance-matrix-saas-game-qa.md`](docs/plans/acceptance-matrix-saas-game-qa.md):
+仓库已通过本地 Docker 验收基线，证据见 [`docs/plans/acceptance-matrix-saas-game-qa.md`](docs/plans/acceptance-matrix-saas-game-qa.md)：
 
-- Backend regression: 76 tests with coverage reporting.
-- Frontend gates: TypeScript check, ESLint, browser UI acceptance, and real browser E2E acceptance.
-- Runtime acceptance: authenticated file evidence, notification governance, knowledge, tools, news, audit, and deterministic intelligence APIs.
-- Database: Alembic migration graph has one release head.
+- 后端回归：76 个测试，带覆盖率报告。
+- 前端门禁：TypeScript 检查、ESLint、浏览器 UI 验收、真实浏览器 E2E 验收。
+- 运行态验收：认证文件证据、通知治理、知识库、工具库、资讯、审计、确定性智能 API。
+- 数据库：Alembic 迁移图保持单一发布头。
+- 生产镜像：`docker-compose.prod.yml` 的前后端镜像已完成本地构建验证。
 
-## Architecture
+## 技术架构
 
-- Frontend: Next.js 14 App Router, TypeScript, Ant Design, Tailwind CSS, Zustand.
-- Backend: FastAPI, SQLAlchemy 2, Alembic, PostgreSQL, Redis, Celery.
-- Runtime: Docker Compose for local development and single-host production deployment.
-- Quality gates: pytest, coverage, pnpm type-check, pnpm lint, Playwright acceptance scripts.
+- 前端：Next.js 14 App Router、TypeScript、Ant Design、Tailwind CSS、Zustand。
+- 后端：FastAPI、SQLAlchemy 2、Alembic、PostgreSQL、Redis、Celery。
+- 运行环境：Docker Compose 支持本地开发和单机生产部署。
+- 质量门禁：pytest、覆盖率、`pnpm type-check`、`pnpm lint`、Playwright 验收脚本。
 
-Project layout:
+项目结构：
 
 ```text
 qa-knowledge-platform/
-├── frontend/                  # Next.js application
-├── backend/                   # FastAPI service and Alembic migrations
-├── scripts/                   # PowerShell and Bash project commands
-├── docs/                      # Architecture, deployment, operations, security
-├── docker-compose.dev.yml     # Local development stack
-└── docker-compose.prod.yml    # Single-host production stack
+├── frontend/                  # Next.js 前端应用
+├── backend/                   # FastAPI 服务与 Alembic 迁移
+├── scripts/                   # PowerShell 与 Bash 项目脚本
+├── docs/                      # 架构、部署、运维、安全文档
+├── docker-compose.dev.yml     # 本地开发栈
+└── docker-compose.prod.yml    # 单机生产栈
 ```
 
-## Quick Start
+## 快速开始
 
-Requirements:
+环境要求：
 
-- Docker Desktop with Docker Compose V2
-- Node.js 18+ for local script-based acceptance checks
-- PowerShell 5+ on Windows, or WSL 2 with Bash
+- Docker Desktop，启用 Docker Compose V2。
+- Node.js 18+，用于本地验收脚本。
+- Windows PowerShell 5+，或 WSL 2 Bash。
 
-PowerShell:
+PowerShell：
 
 ```powershell
 cd qa-knowledge-platform
@@ -49,7 +50,7 @@ cd qa-knowledge-platform
 .\scripts\project-manager.ps1 test
 ```
 
-WSL or Bash:
+WSL 或 Bash：
 
 ```bash
 cd qa-knowledge-platform
@@ -58,24 +59,24 @@ bash ./scripts/project-manager.sh start --env dev
 bash ./scripts/project-manager.sh test
 ```
 
-Local URLs:
+本地访问地址：
 
-- Frontend: <http://localhost:3000>
-- Backend API: <http://localhost:8000>
-- Swagger UI: <http://localhost:8000/docs>
-- Health check: <http://localhost:8000/health>
+- 前端：<http://localhost:3000>
+- 后端 API：<http://localhost:8000>
+- Swagger UI：<http://localhost:8000/docs>
+- 健康检查：<http://localhost:8000/health>
 
-## Documentation
+## 文档
 
-- [Development deployment](docs/deployment/dev.md)
-- [Production deployment](docs/deployment/prod.md)
-- [Architecture](docs/architecture.md)
-- [Operations](docs/operations.md)
-- [Security](docs/security.md)
-- [Technical roadmap](docs/technical-roadmap.md)
-- [Contributor guide](../AGENTS.md)
+- [开发环境部署](docs/deployment/dev.md)
+- [生产环境部署](docs/deployment/prod.md)
+- [系统架构](docs/architecture.md)
+- [运维说明](docs/operations.md)
+- [安全说明](docs/security.md)
+- [技术路线图](docs/technical-roadmap.md)
+- [贡献者指南](../AGENTS.md)
 
-## Development Commands
+## 开发命令
 
 ```powershell
 .\scripts\project-manager.ps1 status
@@ -89,7 +90,7 @@ bash ./scripts/project-manager.sh logs --service backend --follow
 bash ./scripts/project-manager.sh stop
 ```
 
-Backend-only:
+仅后端：
 
 ```bash
 cd backend
@@ -99,7 +100,7 @@ poetry run uvicorn app.main:app --reload
 poetry run pytest tests/ --cov=app
 ```
 
-Frontend-only:
+仅前端：
 
 ```bash
 cd frontend
@@ -110,20 +111,20 @@ pnpm lint
 pnpm build
 ```
 
-## Production Deployment
+## 生产部署
 
-Production deployment is documented in [`docs/deployment/prod.md`](docs/deployment/prod.md). The committed production path is a single-host Docker Compose stack using:
+生产部署步骤见 [`docs/deployment/prod.md`](docs/deployment/prod.md)。当前仓库提供单机 Docker Compose 生产部署路径：
 
 - `backend/Dockerfile`
 - `frontend/Dockerfile`
 - `docker-compose.prod.yml`
 - `.env.prod.example`
 
-Create a real `.env.prod` from the example, replace all secrets and public URLs, then run the documented commands.
+复制 `.env.prod.example` 为 `.env.prod`，替换所有密钥、域名和公网地址后，按生产部署文档执行。
 
-## Contributing
+## 贡献方式
 
-Use Conventional Commits, for example:
+提交信息遵循 Conventional Commits，例如：
 
 ```text
 feat(knowledge): add article review workflow
@@ -131,8 +132,8 @@ fix(files): enforce private download ownership
 docs(deployment): document production rollout
 ```
 
-Before submitting changes, run the narrowest relevant tests and the full project gate when deployment, shared APIs, migrations, authentication, file access, or public documentation changes.
+提交前应运行与变更相关的最小测试；涉及部署、共享 API、迁移、认证、文件访问或公共文档时，应运行完整项目门禁。
 
-## License
+## 许可证
 
-No open-source license file is currently declared in this repository. Add a `LICENSE` file before distributing this project as reusable open-source software.
+当前仓库尚未声明开源许可证。若需要作为可复用开源项目分发，请先补充 `LICENSE` 文件。

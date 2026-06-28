@@ -1,61 +1,61 @@
-# Technical Roadmap
+# 技术路线图
 
-This roadmap describes practical iteration areas for evolving the platform toward large SaaS and game QA operations. It is not a commitment schedule.
+本文描述平台向大规模 SaaS 与游戏 QA 运营演进的实际迭代方向，不代表固定交付排期。
 
-## Current Baseline
+## 当前基线
 
-The project has a deterministic MVP for:
+项目已经具备确定性 MVP 能力：
 
-- SaaS and game business taxonomy.
-- Knowledge articles with collaboration signals.
-- Authenticated evidence files.
-- Tool catalog governance.
-- QA news source governance.
-- Notification settings, templates, and logs.
-- Audit logs and administrator workflows.
-- Source-backed intelligence APIs.
+- SaaS 与游戏业务分类体系。
+- 带协作信号的知识文章。
+- 认证证据文件。
+- 测试工具目录治理。
+- QA 资讯来源治理。
+- 通知设置、模板和日志。
+- 审计日志和管理员工作流。
+- 带来源依据的智能 API。
 
-## P0: Production Hardening
+## P0：生产化加固
 
-- Add login failure throttling and account lock policy.
-- Replace simulated user data export with real article, comment, file, and audit export.
-- Complete invitation email delivery and acceptance flow.
-- Add frontend forgot-password request UX to match the backend reset-token flow.
-- Add malware scanning and object storage support for production file uploads.
-- Add production observability: structured log shipping, metrics, dashboards, and alerts.
+- 增加登录失败限流和账号锁定策略。
+- 将模拟用户数据导出替换为真实文章、评论、文件和审计数据导出。
+- 完成团队邀请邮件发送和接受流程。
+- 补齐前端忘记密码申请界面，与后端 reset-token 流程一致。
+- 为生产文件上传增加恶意文件扫描和对象存储支持。
+- 增加生产可观测性：结构化日志采集、指标、看板和告警。
 
-## P1: Enterprise SaaS QA Workflows
+## P1：企业 SaaS QA 工作流
 
-- Add workspace and tenant boundaries if multiple organizations share one deployment.
-- Add release quality dashboards for incident review, regression risk, and DORA-style signals.
-- Add approval policies for high-impact knowledge and tool changes.
-- Add richer search across articles, tools, news, and evidence files.
+- 多组织共用同一部署时，增加工作区和租户边界。
+- 增加面向事故复盘、回归风险和 DORA 风格信号的质量仪表盘。
+- 为高影响知识和工具变更增加审批策略。
+- 增强文章、工具、资讯和证据文件的统一搜索。
 
-## P2: Game QA Workflows
+## P2：游戏 QA 工作流
 
-- Add build/version quality reports with platform, device, region, and performance dimensions.
-- Track game-specific evidence such as FPS, crash, weak network, compatibility, and localization results.
-- Add review workflows for live operations, hotfixes, and seasonal events.
-- Add integrations for crash analytics, telemetry, and test device labs.
+- 增加按平台、设备、地区和性能维度组织的构建/版本质量报告。
+- 跟踪 FPS、崩溃、弱网、兼容性、本地化等游戏专项证据。
+- 增加面向运营活动、热修和赛季版本的评审流程。
+- 集成崩溃分析、遥测和测试设备实验室。
 
-## P3: Intelligence Evolution
+## P3：智能能力演进
 
-Current intelligence is deterministic and source-backed. Future LLM or agent features should require:
+当前智能能力是确定性的，并且带来源依据。未来引入 LLM 或 Agent 能力前，需要满足：
 
-- Reviewed production datasets.
-- Source citation in every generated answer.
-- Evaluation sets for SaaS and game QA tasks.
-- Human review for release-impacting recommendations.
-- Audit trails for generated suggestions and accepted actions.
+- 已审核的生产数据集。
+- 每个生成答案都必须包含来源引用。
+- 面向 SaaS 与游戏 QA 任务的评测集。
+- 对影响发布的建议进行人工复核。
+- 记录生成建议和采纳动作的审计轨迹。
 
-## Engineering Quality
+## 工程质量
 
-Keep these gates mandatory for shared changes:
+共享变更必须保留以下门禁：
 
-- Backend regression with coverage.
-- Alembic single-head and fresh database upgrade.
-- Frontend type-check, lint, and build.
-- Runtime acceptance.
-- Browser UI acceptance.
-- Real browser E2E acceptance for key flows.
-- Documentation gate when README, deployment, architecture, or acceptance docs change.
+- 后端回归与覆盖率。
+- Alembic 单一 head 和空库升级。
+- 前端类型检查、lint 和构建。
+- 运行态验收。
+- 浏览器 UI 验收。
+- 关键流程真实浏览器 E2E 验收。
+- README、部署、架构或验收文档变化时运行文档门禁。

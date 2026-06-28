@@ -1,85 +1,85 @@
-# Security
+# 安全说明
 
-This repository is public-ready only when secrets stay outside Git and deployments use environment-specific configuration.
+只有在密钥不进入 Git、并且部署使用环境隔离配置时，本仓库才适合作为公共仓库维护。
 
-## Secrets
+## 密钥
 
-Never commit:
+禁止提交：
 
 - `.env`
 - `.env.prod`
-- SMTP passwords
+- SMTP 密码
 - JWT `SECRET_KEY`
-- Database or Redis production passwords
-- Cloud storage credentials
-- TLS private keys
+- 生产数据库或 Redis 密码
+- 云存储凭据
+- TLS 私钥
 
-Use `.env.prod.example` only as a placeholder template.
+`.env.prod.example` 只能作为占位模板使用。
 
-## Authentication
+## 认证
 
-The backend uses JWT authentication and role-aware API flows. Email verification, password reset, and email change flows use persisted one-time tokens. Invalid or reused tokens are rejected by backend tests and runtime acceptance.
+后端使用 JWT 认证和基于角色的 API 流程。邮箱验证、密码重置和邮箱变更使用持久化的一次性 token。无效或复用的 token 会被后端测试和运行态验收拦截。
 
-Required production settings:
+生产环境必须：
 
-- Set a strong `SECRET_KEY`.
-- Keep `ACCESS_TOKEN_EXPIRE_MINUTES` aligned with business risk.
-- Restrict `ALLOWED_HOSTS` to trusted frontend origins.
-- Serve frontend and API through HTTPS.
+- 设置强随机 `SECRET_KEY`。
+- 根据业务风险配置 `ACCESS_TOKEN_EXPIRE_MINUTES`。
+- 将 `ALLOWED_HOSTS` 限制为可信前端来源。
+- 通过 HTTPS 提供前端和 API。
 
-## Authorization
+## 授权
 
-Sensitive flows require authenticated users and role checks:
+敏感流程需要认证用户和角色检查：
 
-- Private file download and deletion.
-- Admin user governance.
-- Notification administration.
-- Review and publication actions.
-- Audit log access.
+- 私有文件下载和删除。
+- 管理员用户治理。
+- 通知管理。
+- 审核和发布操作。
+- 审计日志访问。
 
-When adding APIs, place authorization checks near the route or service entrypoint and add tests for forbidden access.
+新增 API 时，应在路由或服务入口附近放置授权检查，并补充禁止访问测试。
 
-## File Uploads
+## 文件上传
 
-Current upload controls include file size limits, allowed file extensions, authenticated upload/list/download/delete, and private owner/admin access. Production deployments should add:
+当前上传控制包括文件大小限制、扩展名白名单、认证上传/列表/下载/删除，以及私有文件的所有者/管理员访问控制。生产部署还应补充：
 
-- Antivirus or malware scanning for uploaded files.
-- Object storage for multi-node deployments.
-- CDN rules that do not bypass backend authorization for private files.
+- 上传文件病毒或恶意内容扫描。
+- 多节点部署所需的对象存储。
+- CDN 规则不得绕过后端私有文件授权。
 
-## Network and Runtime
+## 网络与运行时
 
-Recommended production baseline:
+推荐生产基线：
 
-- HTTPS only at the reverse proxy or load balancer.
-- PostgreSQL and Redis not exposed to the public internet.
-- Redis password enabled.
-- Docker volumes backed up.
-- Logs retained with access controls.
-- Admin accounts reviewed regularly.
+- 仅通过反向代理或负载均衡器提供 HTTPS。
+- PostgreSQL 和 Redis 不暴露到公网。
+- Redis 启用密码。
+- Docker 卷定期备份。
+- 日志保留并限制访问权限。
+- 定期复核管理员账号。
 
-## Dependency and Code Checks
+## 依赖与代码检查
 
-Run the standard gate before release:
+发布前运行标准门禁：
 
 ```bash
 bash ./scripts/project-manager.sh test
 ```
 
-or:
+或：
 
 ```powershell
 .\scripts\project-manager.ps1 test
 ```
 
-For targeted backend checks:
+后端定向检查：
 
 ```bash
 cd backend
 poetry run pytest tests/ --cov=app
 ```
 
-For targeted frontend checks:
+前端定向检查：
 
 ```bash
 cd frontend
@@ -88,6 +88,6 @@ pnpm lint
 pnpm build
 ```
 
-## Disclosure
+## 漏洞披露
 
-Do not publish vulnerability details in public issues until a fix is available. Track sensitive findings in a private issue tracker or security advisory workflow.
+修复可用前，不要在公开 issue 中披露漏洞细节。敏感发现应在私有 issue 跟踪器或安全公告流程中处理。

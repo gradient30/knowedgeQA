@@ -1,83 +1,83 @@
-# Architecture
+# 系统架构
 
-QA Knowledge Platform is a modular full-stack application for SaaS and game QA collaboration.
+QA 知识协作平台是一个面向 SaaS 与游戏 QA 协作场景的模块化全栈应用。
 
-## System Context
+## 系统上下文
 
 ```mermaid
 flowchart LR
-  User["QA engineer or administrator"] --> Frontend["Next.js frontend"]
-  Frontend --> API["FastAPI backend"]
+  User["QA 工程师或管理员"] --> Frontend["Next.js 前端"]
+  Frontend --> API["FastAPI 后端"]
   API --> Postgres["PostgreSQL"]
   API --> Redis["Redis"]
-  API --> Uploads["File uploads"]
-  API --> Celery["Celery tasks"]
+  API --> Uploads["文件上传存储"]
+  API --> Celery["Celery 任务"]
   Celery --> Redis
-  Celery --> SMTP["SMTP provider"]
+  Celery --> SMTP["SMTP 服务"]
 ```
 
-## Frontend
+## 前端
 
-The frontend lives in `frontend/`.
+前端位于 `frontend/`。
 
-- Routes: `frontend/src/app/`
-- Shared UI: `frontend/src/components/`
-- API clients: `frontend/src/lib/api/`
-- Auth store: `frontend/src/lib/store/auth.ts`
-- Types: `frontend/src/types/`
+- 页面路由：`frontend/src/app/`
+- 共享组件：`frontend/src/components/`
+- API 客户端：`frontend/src/lib/api/`
+- 认证状态：`frontend/src/lib/store/auth.ts`
+- 类型定义：`frontend/src/types/`
 
-The application uses Next.js App Router, Ant Design, Tailwind CSS, and typed API clients. Core workspaces include knowledge, files, tools, news, profile, and notification administration.
+前端使用 Next.js App Router、Ant Design、Tailwind CSS 和类型化 API 客户端。核心工作台包括知识库、文件、工具、资讯、个人资料和通知管理。
 
-## Backend
+## 后端
 
-The backend lives in `backend/`.
+后端位于 `backend/`。
 
-- App entrypoint: `backend/app/main.py`
-- Configuration: `backend/app/core/config.py`
-- API router: `backend/app/api/v1/router.py`
-- Domain modules: `backend/app/modules/`
-- Migrations: `backend/alembic/`
-- Tests: `backend/tests/`
+- 应用入口：`backend/app/main.py`
+- 配置：`backend/app/core/config.py`
+- API 路由：`backend/app/api/v1/router.py`
+- 业务模块：`backend/app/modules/`
+- 数据库迁移：`backend/alembic/`
+- 测试：`backend/tests/`
 
-Business modules are grouped by capability:
+业务模块按能力划分：
 
-- `users`: authentication, profile, teams, admin user governance, one-time auth tokens.
-- `knowledge`: article CRUD, approval, comments, likes, favorites, metrics.
-- `files`: authenticated uploads, listing, download, delete, evidence linking.
-- `tools`: QA tool catalog, ratings, favorites, usage tracking.
-- `news`: QA intelligence items, source governance, publish/reject flow.
-- `notifications`: settings, templates, previews, test email, logs.
-- `audit`: auditable operational events.
-- `intelligence`: deterministic source-backed recommendations and summaries.
+- `users`：认证、个人资料、团队、管理员用户治理、一次性认证 token。
+- `knowledge`：文章 CRUD、审批、评论、点赞、收藏、指标。
+- `files`：认证上传、列表、下载、删除、证据关联。
+- `tools`：QA 工具目录、评分、收藏、使用记录。
+- `news`：QA 情报、来源治理、发布/驳回流程。
+- `notifications`：设置、模板、预览、测试邮件、日志。
+- `audit`：可审计的业务事件。
+- `intelligence`：确定性的、带来源依据的推荐和摘要。
 
-## Data Flow
+## 数据流
 
-1. The browser calls backend APIs through typed frontend clients.
-2. The backend validates JWT authentication and role permissions.
-3. SQLAlchemy persists domain data to PostgreSQL.
-4. Redis backs cache and Celery queues.
-5. Celery handles asynchronous notification and news tasks.
-6. Uploaded evidence is stored locally in development and in the configured production upload volume.
+1. 浏览器通过前端类型化客户端调用后端 API。
+2. 后端校验 JWT 认证和角色权限。
+3. SQLAlchemy 将业务数据持久化到 PostgreSQL。
+4. Redis 支撑缓存和 Celery 队列。
+5. Celery 处理异步通知和资讯任务。
+6. 开发环境文件存储在本地，生产环境文件存储在 Docker 持久化卷中。
 
-## Database and Migrations
+## 数据库与迁移
 
-Alembic migrations are the release-grade database change mechanism. The current acceptance matrix requires a single Alembic head and a successful fresh empty database upgrade.
+Alembic 是发布级数据库变更机制。验收矩阵要求迁移图只有一个 head，并且空数据库可以成功升级到最新版本。
 
-Runtime startup still creates tables through `create_tables()` for developer resilience, but production rollout must run:
+运行时仍会通过 `create_tables()` 创建表，以增强开发环境容错；生产发布必须执行：
 
 ```bash
 poetry run alembic upgrade head
 ```
 
-## Acceptance Architecture
+## 验收架构
 
-The project keeps release evidence in scripts rather than manual-only checks:
+项目将发布证据固化在脚本中，而不是仅依赖人工检查：
 
-- Backend regression: `pytest tests/ --cov=app`
-- Migration graph: `alembic heads` and fresh `alembic upgrade head`
-- Frontend gates: `pnpm type-check`, `pnpm lint`, `pnpm build`
-- Runtime acceptance: `scripts/verify-runtime-acceptance.js`
-- Browser acceptance: `scripts/verify-ui-acceptance.js`
-- Real E2E acceptance: `scripts/verify-e2e-real-acceptance.js`
+- 后端回归：`pytest tests/ --cov=app`
+- 迁移图：`alembic heads` 和空库 `alembic upgrade head`
+- 前端门禁：`pnpm type-check`、`pnpm lint`、`pnpm build`
+- 运行态验收：`scripts/verify-runtime-acceptance.js`
+- 浏览器验收：`scripts/verify-ui-acceptance.js`
+- 真实 E2E 验收：`scripts/verify-e2e-real-acceptance.js`
 
-See `docs/plans/acceptance-matrix-saas-game-qa.md` for release evidence.
+发布证据详见 `docs/plans/acceptance-matrix-saas-game-qa.md`。

@@ -1,19 +1,19 @@
-# QA Knowledge Platform Repository
+# QA 知识协作平台仓库
 
-This repository hosts `qa-knowledge-platform`, a full-stack QA knowledge collaboration platform for SaaS and game quality engineering teams.
+本仓库包含 `qa-knowledge-platform` 项目：一个面向 SaaS 与游戏质量工程团队的全栈 QA 知识协作平台。
 
-Start here:
+常用入口：
 
-- [Project README](qa-knowledge-platform/README.md)
-- [Development deployment](qa-knowledge-platform/docs/deployment/dev.md)
-- [Production deployment](qa-knowledge-platform/docs/deployment/prod.md)
-- [Architecture](qa-knowledge-platform/docs/architecture.md)
-- [Operations](qa-knowledge-platform/docs/operations.md)
-- [Security](qa-knowledge-platform/docs/security.md)
-- [Technical roadmap](qa-knowledge-platform/docs/technical-roadmap.md)
-- [Contributor guide](AGENTS.md)
+- [项目 README](qa-knowledge-platform/README.md)
+- [开发环境部署](qa-knowledge-platform/docs/deployment/dev.md)
+- [生产环境部署](qa-knowledge-platform/docs/deployment/prod.md)
+- [系统架构](qa-knowledge-platform/docs/architecture.md)
+- [运维说明](qa-knowledge-platform/docs/operations.md)
+- [安全说明](qa-knowledge-platform/docs/security.md)
+- [技术路线图](qa-knowledge-platform/docs/technical-roadmap.md)
+- [贡献者指南](AGENTS.md)
 
-Quick start:
+快速启动：
 
 ```powershell
 cd qa-knowledge-platform
@@ -22,4 +22,4 @@ cd qa-knowledge-platform
 .\scripts\project-manager.ps1 test
 ```
 
-The production deployment path is documented and backed by committed Docker artifacts under `qa-knowledge-platform/`.
+生产部署路径已经文档化，并由 `qa-knowledge-platform/` 下提交的 Docker 部署文件支撑。
