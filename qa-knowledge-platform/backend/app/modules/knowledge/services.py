@@ -14,9 +14,13 @@ from app.modules.knowledge.models import (
 )
 from app.modules.knowledge.schemas import (
     ArticleCreate,
+    ArticleEngagementResponse,
     ArticleResponse,
     ArticleUpdate,
     CategoryResponse,
+    CommentCreate,
+    CommentResponse,
+    KnowledgeMetricsResponse,
 )
 
 
@@ -107,6 +111,98 @@ class KnowledgeService:
         await self.session.commit()
         return True
 
+    async def list_comments(self, article_id: UUID) -> List[CommentResponse]:
+        article = await self._get_article_model(article_id)
+        extra_data = article.extra_data or {}
+        return [
+            CommentResponse(
+                id=UUID(comment["id"]),
+                article_id=article.id,
+                user_id=UUID(comment["user_id"]),
+                content=comment["content"],
+                like_count=comment.get("like_count", 0),
+            )
+            for comment in extra_data.get("comments", [])
+        ]
+
+    async def add_comment(
+        self, article_id: UUID, payload: CommentCreate
+    ) -> CommentResponse:
+        article = await self._get_article_model(article_id)
+        extra_data = dict(article.extra_data or {})
+        comments = list(extra_data.get("comments", []))
+        comment_id = UUID(int=len(comments) + 1)
+        comment = {
+            "id": str(comment_id),
+            "user_id": str(payload.user_id),
+            "content": payload.content,
+            "like_count": 0,
+        }
+        comments.append(comment)
+        extra_data["comments"] = comments
+        article.extra_data = extra_data
+        article.comment_count = len(comments)
+        await self.session.commit()
+        await self.session.refresh(article)
+        return CommentResponse(
+            id=comment_id,
+            article_id=article.id,
+            user_id=payload.user_id,
+            content=payload.content,
+            like_count=0,
+        )
+
+    async def like_article(
+        self, article_id: UUID, user_id: UUID
+    ) -> ArticleEngagementResponse:
+        article = await self._get_article_model(article_id)
+        extra_data = dict(article.extra_data or {})
+        liked_user_ids = set(extra_data.get("liked_user_ids", []))
+        liked_user_ids.add(str(user_id))
+        extra_data["liked_user_ids"] = sorted(liked_user_ids)
+        article.extra_data = extra_data
+        article.like_count = len(liked_user_ids)
+        await self.session.commit()
+        await self.session.refresh(article)
+        return self._engagement_response(article, user_id)
+
+    async def favorite_article(
+        self, article_id: UUID, user_id: UUID
+    ) -> ArticleEngagementResponse:
+        article = await self._get_article_model(article_id)
+        extra_data = dict(article.extra_data or {})
+        favorite_user_ids = set(extra_data.get("favorite_user_ids", []))
+        favorite_user_ids.add(str(user_id))
+        extra_data["favorite_user_ids"] = sorted(favorite_user_ids)
+        article.extra_data = extra_data
+        await self.session.commit()
+        await self.session.refresh(article)
+        return self._engagement_response(article, user_id)
+
+    async def get_metrics(
+        self, business_domain: Optional[str] = None
+    ) -> KnowledgeMetricsResponse:
+        stmt = select(Article)
+        if business_domain:
+            stmt = stmt.where(Article.business_domain == BusinessDomain(business_domain))
+        articles = (await self.session.execute(stmt)).scalars().all()
+        return KnowledgeMetricsResponse(
+            business_domain=business_domain,
+            article_count=len(articles),
+            approved_article_count=sum(
+                1 for article in articles if article.review_status == ReviewStatus.APPROVED
+            ),
+            pending_article_count=sum(
+                1 for article in articles if article.review_status == ReviewStatus.PENDING
+            ),
+            comment_count=sum(article.comment_count or 0 for article in articles),
+            like_count=sum(article.like_count or 0 for article in articles),
+            favorite_count=sum(
+                len((article.extra_data or {}).get("favorite_user_ids", []))
+                for article in articles
+            ),
+        )
+
     async def search_articles(
         self,
         q: str,
@@ -151,6 +247,27 @@ class KnowledgeService:
         if project_key:
             stmt = stmt.where(Article.project_key == project_key)
         return stmt.order_by(Article.updated_at.desc().nullslast(), Article.created_at.desc())
+
+    async def _get_article_model(self, article_id: UUID) -> Article:
+        article = await self.session.get(Article, article_id)
+        if article is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="文章不存在")
+        return article
+
+    def _engagement_response(
+        self, article: Article, user_id: UUID
+    ) -> ArticleEngagementResponse:
+        extra_data = article.extra_data or {}
+        liked_user_ids = extra_data.get("liked_user_ids", [])
+        favorite_user_ids = extra_data.get("favorite_user_ids", [])
+        return ArticleEngagementResponse(
+            article_id=article.id,
+            like_count=article.like_count or 0,
+            comment_count=article.comment_count or 0,
+            favorite_count=len(favorite_user_ids),
+            liked=str(user_id) in liked_user_ids,
+            favorited=str(user_id) in favorite_user_ids,
+        )
 
     def _article_to_response(self, article: Article) -> ArticleResponse:
         extra_data = article.extra_data or {}

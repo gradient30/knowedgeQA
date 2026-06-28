@@ -61,3 +61,35 @@ class ArticleResponse(ArticleBase):
 
     class Config:
         from_attributes = True
+
+
+class CommentCreate(BaseModel):
+    user_id: UUID
+    content: str = Field(..., min_length=1, max_length=1000)
+
+
+class CommentResponse(BaseModel):
+    id: UUID
+    article_id: UUID
+    user_id: UUID
+    content: str
+    like_count: int = 0
+
+
+class ArticleEngagementResponse(BaseModel):
+    article_id: UUID
+    like_count: int = 0
+    comment_count: int = 0
+    favorite_count: int = 0
+    liked: bool = False
+    favorited: bool = False
+
+
+class KnowledgeMetricsResponse(BaseModel):
+    business_domain: Optional[str] = None
+    article_count: int = 0
+    approved_article_count: int = 0
+    pending_article_count: int = 0
+    comment_count: int = 0
+    like_count: int = 0
+    favorite_count: int = 0

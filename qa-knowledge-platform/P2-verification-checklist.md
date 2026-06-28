@@ -104,5 +104,6 @@
 
 - [x] Admin can review or reject SaaS incident review content before publication.
 - [x] Admin can publish or reject game QA intelligence from configured news sources.
+- [x] Knowledge articles support comments, likes, favorites, and business-domain metrics.
 - [x] Tool rating, favorite, and usage actions are available for SaaS and game tools.
-- Evidence commands: `python -m pytest tests/test_tools_api.py tests/test_news_api.py -q`, `node scripts/verify-runtime-acceptance.js`, `pnpm lint`.
+- Evidence commands: `python -m pytest tests/test_knowledge_api.py tests/test_tools_api.py tests/test_news_api.py -q`, `node scripts/verify-runtime-acceptance.js`, `pnpm lint`.

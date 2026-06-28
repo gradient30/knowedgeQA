@@ -151,6 +151,40 @@ async function verifyKnowledgeWriteFlow(attachmentFileId) {
     'article detail must return linked evidence file'
   );
 
+  const comment = await readJson(
+    `${backendUrl}/api/v1/knowledge/articles/${article.id}/comments`,
+    writeJson('POST', {
+      user_id: acceptanceUserId,
+      content: 'QA manager runtime acceptance comment',
+    })
+  );
+  assert.strictEqual(comment.content, 'QA manager runtime acceptance comment');
+  const comments = await readJson(
+    `${backendUrl}/api/v1/knowledge/articles/${article.id}/comments`
+  );
+  assert(comments.some((item) => item.id === comment.id), 'created comment must be listed');
+
+  const liked = await readJson(
+    `${backendUrl}/api/v1/knowledge/articles/${article.id}/like?user_id=${acceptanceUserId}`,
+    { method: 'POST' }
+  );
+  assert.strictEqual(liked.liked, true);
+  assert(liked.like_count >= 1);
+
+  const favorited = await readJson(
+    `${backendUrl}/api/v1/knowledge/articles/${article.id}/favorite?user_id=${acceptanceUserId}`,
+    { method: 'POST' }
+  );
+  assert.strictEqual(favorited.favorited, true);
+  assert(favorited.favorite_count >= 1);
+
+  const metrics = await readJson(
+    `${backendUrl}/api/v1/knowledge/metrics?business_domain=saas`
+  );
+  assert(metrics.comment_count >= 1, 'knowledge metrics must include comments');
+  assert(metrics.like_count >= 1, 'knowledge metrics must include likes');
+  assert(metrics.favorite_count >= 1, 'knowledge metrics must include favorites');
+
   const search = await readJson(
     `${backendUrl}/api/v1/knowledge/search?q=${encodeURIComponent(marker)}&business_domain=saas`
   );
@@ -159,7 +193,7 @@ async function verifyKnowledgeWriteFlow(attachmentFileId) {
   await readJson(`${backendUrl}/api/v1/knowledge/articles/${article.id}`, {
     method: 'DELETE',
   });
-  console.log('knowledge write flow: create with evidence file, approve, update, search, delete');
+  console.log('knowledge write flow: create with evidence file, approve, comment, like, favorite, metrics, update, search, delete');
 }
 
 async function verifyToolsWriteFlow() {

@@ -6,10 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_async_session
 from app.modules.knowledge.schemas import (
+    ArticleEngagementResponse,
     ArticleCreate,
     ArticleResponse,
     ArticleUpdate,
     CategoryResponse,
+    CommentCreate,
+    CommentResponse,
+    KnowledgeMetricsResponse,
 )
 from app.modules.knowledge.services import KnowledgeService
 
@@ -80,6 +84,15 @@ async def get_categories(
     return await service.list_categories(business_domain=business_domain)
 
 
+@router.get("/metrics", response_model=KnowledgeMetricsResponse)
+async def get_metrics(
+    business_domain: Optional[str] = None,
+    service: KnowledgeService = Depends(get_knowledge_service),
+):
+    """获取知识协作运营指标"""
+    return await service.get_metrics(business_domain=business_domain)
+
+
 @router.get("/articles/{article_id}", response_model=ArticleResponse)
 async def get_article(
     article_id: UUID,
@@ -97,6 +110,49 @@ async def update_article(
 ):
     """更新文章"""
     return await service.update_article(article_id, payload)
+
+
+@router.get("/articles/{article_id}/comments", response_model=List[CommentResponse])
+async def list_comments(
+    article_id: UUID,
+    service: KnowledgeService = Depends(get_knowledge_service),
+):
+    """获取文章评论"""
+    return await service.list_comments(article_id)
+
+
+@router.post(
+    "/articles/{article_id}/comments",
+    response_model=CommentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_comment(
+    article_id: UUID,
+    payload: CommentCreate,
+    service: KnowledgeService = Depends(get_knowledge_service),
+):
+    """添加文章评论"""
+    return await service.add_comment(article_id, payload)
+
+
+@router.post("/articles/{article_id}/like", response_model=ArticleEngagementResponse)
+async def like_article(
+    article_id: UUID,
+    user_id: UUID,
+    service: KnowledgeService = Depends(get_knowledge_service),
+):
+    """点赞文章"""
+    return await service.like_article(article_id, user_id)
+
+
+@router.post("/articles/{article_id}/favorite", response_model=ArticleEngagementResponse)
+async def favorite_article(
+    article_id: UUID,
+    user_id: UUID,
+    service: KnowledgeService = Depends(get_knowledge_service),
+):
+    """收藏文章"""
+    return await service.favorite_article(article_id, user_id)
 
 
 @router.delete("/articles/{article_id}")

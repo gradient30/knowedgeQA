@@ -11,6 +11,7 @@ class FakeKnowledgeService:
     def __init__(self):
         self.article_id = uuid.uuid4()
         self.file_id = uuid.uuid4()
+        self.user_id = uuid.uuid4()
         self.deleted_ids = []
 
     async def list_articles(self, **filters):
@@ -72,6 +73,58 @@ class FakeKnowledgeService:
     async def delete_article(self, article_id):
         self.deleted_ids.append(article_id)
         return True
+
+    async def add_comment(self, article_id, payload):
+        return {
+            "id": uuid.uuid4(),
+            "article_id": article_id,
+            "user_id": payload.user_id,
+            "content": payload.content,
+            "like_count": 0,
+        }
+
+    async def list_comments(self, article_id):
+        return [
+            {
+                "id": uuid.uuid4(),
+                "article_id": article_id,
+                "user_id": self.user_id,
+                "content": "QA经理验收评论",
+                "like_count": 0,
+            }
+        ]
+
+    async def like_article(self, article_id, user_id):
+        return {
+            "article_id": article_id,
+            "like_count": 1,
+            "comment_count": 1,
+            "favorite_count": 0,
+            "liked": True,
+            "favorited": False,
+        }
+
+    async def favorite_article(self, article_id, user_id):
+        return {
+            "article_id": article_id,
+            "like_count": 1,
+            "comment_count": 1,
+            "favorite_count": 1,
+            "liked": True,
+            "favorited": True,
+        }
+
+    async def get_metrics(self, business_domain=None):
+        assert business_domain == "saas"
+        return {
+            "business_domain": "saas",
+            "article_count": 2,
+            "approved_article_count": 1,
+            "pending_article_count": 1,
+            "comment_count": 3,
+            "like_count": 5,
+            "favorite_count": 4,
+        }
 
     async def search_articles(self, **filters):
         assert filters["q"] == "弱网"
@@ -194,3 +247,41 @@ async def test_search_and_categories_support_game_domain(app_with_fake_service):
     assert search_response.json()[0]["title"] == "游戏弱网测试经验"
     assert categories_response.status_code == 200
     assert categories_response.json()[0]["name"] == "机型兼容测试"
+
+
+@pytest.mark.asyncio
+async def test_article_comment_like_favorite_and_metrics_flow(app_with_fake_service):
+    app, service = app_with_fake_service
+    article_id = service.article_id
+    user_id = service.user_id
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        comment_response = await client.post(
+            f"/knowledge/articles/{article_id}/comments",
+            json={"user_id": str(user_id), "content": "QA经理验收评论"},
+        )
+        comments_response = await client.get(f"/knowledge/articles/{article_id}/comments")
+        like_response = await client.post(
+            f"/knowledge/articles/{article_id}/like",
+            params={"user_id": str(user_id)},
+        )
+        favorite_response = await client.post(
+            f"/knowledge/articles/{article_id}/favorite",
+            params={"user_id": str(user_id)},
+        )
+        metrics_response = await client.get(
+            "/knowledge/metrics", params={"business_domain": "saas"}
+        )
+
+    assert comment_response.status_code == 201
+    assert comment_response.json()["content"] == "QA经理验收评论"
+    assert comments_response.status_code == 200
+    assert comments_response.json()[0]["article_id"] == str(article_id)
+    assert like_response.status_code == 200
+    assert like_response.json()["liked"] is True
+    assert favorite_response.status_code == 200
+    assert favorite_response.json()["favorited"] is True
+    assert metrics_response.status_code == 200
+    assert metrics_response.json()["comment_count"] == 3
