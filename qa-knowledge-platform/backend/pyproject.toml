@@ -1,9 +1,13 @@
-[tool.poetry]
+[project]
 name = "qa-knowledge-platform-backend"
 version = "0.1.0"
 description = "QA测试知识协作平台后端API"
-authors = ["QA Team <qa@company.com>"]
+authors = [{ name = "QA Team", email = "qa@company.com" }]
 readme = "README.md"
+requires-python = ">=3.11,<4.0"
+dynamic = ["dependencies"]
+
+[tool.poetry]
 packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
@@ -17,7 +21,7 @@ redis = "^5.0.1"
 celery = "^5.3.4"
 fastapi-users = {extras = ["sqlalchemy"], version = "^12.1.2"}
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
-passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+bcrypt = "^4.3.0"
 python-multipart = "^0.0.6"
 httpx = "^0.25.2"
 beautifulsoup4 = "^4.12.2"

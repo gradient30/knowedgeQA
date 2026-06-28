@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.knowledge.models import (
     ArticleType,
@@ -13,15 +13,14 @@ from app.modules.knowledge.models import (
 
 
 class CategoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     name: str
     description: Optional[str] = None
     type: CategoryType
     business_domain: BusinessDomain
     sort_order: int = 0
-
-    class Config:
-        from_attributes = True
 
 
 class ArticleBase(BaseModel):
@@ -56,11 +55,10 @@ class ArticleUpdate(BaseModel):
 
 
 class ArticleResponse(ArticleBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     review_status: ReviewStatus
-
-    class Config:
-        from_attributes = True
 
 
 class CommentCreate(BaseModel):

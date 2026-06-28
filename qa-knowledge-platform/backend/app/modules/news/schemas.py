@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.news.models import BusinessDomain, NewsCategory, ReviewStatus
 
@@ -33,14 +33,15 @@ class NewsSourceUpdate(BaseModel):
 
 
 class NewsSourceResponse(NewsSourceBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     selector: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-
 
 class NewsItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     source_id: UUID
     title: str
@@ -50,6 +51,3 @@ class NewsItemResponse(BaseModel):
     tags: List[str] = Field(default_factory=list)
     relevance_score: Decimal = Decimal("0")
     review_status: ReviewStatus
-
-    class Config:
-        from_attributes = True

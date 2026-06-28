@@ -277,6 +277,36 @@ function Verify-DatabaseMigrations {
     }
 }
 
+function Wait-HttpReady {
+    param(
+        [string]$Url,
+        [int]$TimeoutSeconds = 90
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5
+            if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
+                return
+            }
+        } catch {
+            Start-Sleep -Seconds 2
+            continue
+        }
+        Start-Sleep -Seconds 2
+    }
+
+    Write-ErrorMessage "等待服务就绪超时: $Url"
+    exit 1
+}
+
+function Restore-FrontendDevServer {
+    Write-Info '恢复 frontend dev server，避免生产构建清理 .next 后影响 UI 验收...'
+    Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('up', '-d', '--force-recreate', 'frontend')
+    Wait-HttpReady -Url 'http://localhost:3000/knowledge'
+}
+
 function Run-Tests {
     Write-Info '运行后端测试...'
     Invoke-Compose -ComposeFile 'docker-compose.dev.yml' -ComposeArgs @('exec', 'backend', 'poetry', 'run', 'pytest', 'tests/', '--cov=app')
@@ -298,6 +328,8 @@ function Run-Tests {
         exit $LASTEXITCODE
     }
 
+    Restore-FrontendDevServer
+
     Write-Info '运行SaaS/Game UI验收...'
     npx --yes --package playwright node scripts/verify-ui-acceptance.js
     if ($LASTEXITCODE -ne 0) {
@@ -306,6 +338,10 @@ function Run-Tests {
 
     Write-Info '运行验收文档门禁...'
     node scripts/verify-core-pages.js
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+    node scripts/verify-project-manager-scripts.js
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
     }

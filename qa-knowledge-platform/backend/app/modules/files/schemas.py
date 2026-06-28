@@ -1,10 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
 
 class FileInfo(BaseModel):
     """文件信息模型"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     filename: str
     original_filename: str
@@ -15,9 +17,6 @@ class FileInfo(BaseModel):
     thumbnail_url: Optional[str] = None
     upload_time: datetime
     
-    class Config:
-        from_attributes = True
-
 
 class FileUploadResponse(BaseModel):
     """文件上传响应模型"""

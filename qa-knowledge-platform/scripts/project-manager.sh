@@ -396,6 +396,28 @@ verify_database_migrations() {
     fi
 }
 
+wait_http_ready() {
+    local url="$1"
+    local timeout_seconds="${2:-90}"
+    local deadline=$((SECONDS + timeout_seconds))
+
+    while [ "$SECONDS" -lt "$deadline" ]; do
+        if run_node -e "fetch(process.argv[1]).then((response) => process.exit(response.status < 500 ? 0 : 1)).catch(() => process.exit(1))" "$url"; then
+            return
+        fi
+        sleep 2
+    done
+
+    log_error "等待服务就绪超时: $url"
+    exit 1
+}
+
+restore_frontend_dev_server() {
+    log_info "恢复 frontend dev server，避免生产构建清理 .next 后影响 UI 验收..."
+    run_compose -f docker-compose.dev.yml up -d --force-recreate frontend
+    wait_http_ready "http://localhost:3000/knowledge"
+}
+
 # 运行测试
 run_tests() {
     log_info "运行测试..."
@@ -419,11 +441,14 @@ run_tests() {
     log_info "运行SaaS/Game运行态验收..."
     run_node scripts/verify-runtime-acceptance.js
 
+    restore_frontend_dev_server
+
     log_info "运行SaaS/Game UI验收..."
     run_npx --yes --package playwright node scripts/verify-ui-acceptance.js
 
     log_info "运行验收文档门禁..."
     run_node scripts/verify-core-pages.js
+    run_node scripts/verify-project-manager-scripts.js
     run_node scripts/verify-acceptance-docs.js
     
     log_success "测试完成"

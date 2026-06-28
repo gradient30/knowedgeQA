@@ -1,5 +1,5 @@
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from datetime import datetime
 from uuid import UUID
 
@@ -83,6 +83,8 @@ class TeamUpdate(BaseModel):
 
 class TeamMemberInfo(BaseModel):
     """团队成员信息"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     username: str
     nickname: Optional[str]
@@ -92,12 +94,10 @@ class TeamMemberInfo(BaseModel):
     joined_at: datetime
     is_leader: bool = False
 
-    class Config:
-        from_attributes = True
-
-
 class TeamResponse(TeamBase):
     """团队信息响应"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     leader_id: Optional[UUID]
     settings: Optional[dict]
@@ -106,10 +106,6 @@ class TeamResponse(TeamBase):
     member_count: int = 0
     leader: Optional["UserResponse"] = None
     members: List[TeamMemberInfo] = []
-
-    class Config:
-        from_attributes = True
-
 
 class TeamInvitation(BaseModel):
     """团队邀请"""
@@ -134,6 +130,8 @@ class TeamStats(BaseModel):
 
 class UserResponse(UserBase):
     """用户信息响应"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     role: UserRole
     professional_role: Optional[ProfessionalRole]
@@ -146,10 +144,6 @@ class UserResponse(UserBase):
     last_login: Optional[datetime]
     created_at: datetime
     updated_at: Optional[datetime]
-
-    class Config:
-        from_attributes = True
-
 
 class TokenResponse(BaseModel):
     """令牌响应"""

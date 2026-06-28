@@ -2,21 +2,20 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.tools.models import BusinessDomain, ToolCategoryType
 
 
 class ToolCategoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     name: str
     description: Optional[str] = None
     type: ToolCategoryType
     business_domain: BusinessDomain
     sort_order: int = 0
-
-    class Config:
-        from_attributes = True
 
 
 class ToolBase(BaseModel):
@@ -45,14 +44,13 @@ class ToolUpdate(BaseModel):
 
 
 class ToolResponse(ToolBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     avg_rating: Decimal = Decimal("0")
     rating_count: int = 0
     usage_count: int = 0
     is_recommended: bool = False
-
-    class Config:
-        from_attributes = True
 
 
 class ToolRatingCreate(BaseModel):
@@ -63,12 +61,11 @@ class ToolRatingCreate(BaseModel):
 
 
 class ToolRatingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     tool_id: UUID
     user_id: UUID
     rating: int
     review: Optional[str] = None
     pros_cons: Dict[str, Any] = Field(default_factory=dict)
-
-    class Config:
-        from_attributes = True
